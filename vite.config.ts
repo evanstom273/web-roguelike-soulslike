@@ -18,6 +18,10 @@ export default defineConfig({
         name: 'Roguelike Soulslike',
         short_name: 'Soulslike',
         description: 'A top-down Soulslike roguelite.',
+        // Explicit app identity. Changing it makes browsers treat this as a new app,
+        // which was needed once to get past a stuck Android install.
+        id: '/web-roguelike-soulslike/?app=v2',
+        start_url: '/web-roguelike-soulslike/?source=pwa',
         theme_color: '#05070d',
         background_color: '#05070d',
         display: 'fullscreen',
