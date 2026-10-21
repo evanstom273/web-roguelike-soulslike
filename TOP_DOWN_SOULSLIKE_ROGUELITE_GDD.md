@@ -8,7 +8,7 @@
 - A distinct, fun, relatively simple web-game project: not a remake of Ashen Vow or a full copy of the game-jam game that inspired the discussion.
 - Genre: 2D top-down Soulslike roguelite with procedural environments and repeated runs.
 - Some ideas may carry over from Ashen Vow, but this is intended to be a different game entirely.
-- Preferred web stack: React, Vite, TypeScript and Tailwind CSS, following the creator’s usual workflow.
+- Web stack: Phaser, React, Vite, TypeScript and Tailwind CSS, with IndexedDB (via Dexie) for save data, following the creator’s usual workflow.
 - Presentation: strictly 90° top-down (direct overhead), never three-quarter view.
 - Detailed layered SVG art, following the complete adapted specification in Part II.
 

@@ -2,7 +2,7 @@
 
 Top-down Soulslike roguelite for the web. See `TOP_DOWN_SOULSLIKE_ROGUELITE_GDD.md` for the design doc.
 
-Stack: React, Vite, TypeScript, Tailwind CSS, Dexie (IndexedDB) for saves.
+Stack: Phaser, React, Vite, TypeScript, Tailwind CSS, Dexie (IndexedDB) for saves.
 
 ```sh
 npm install
