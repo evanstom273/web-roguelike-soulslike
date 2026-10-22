@@ -19,5 +19,12 @@ export function threat(floor: number, runTime: number): Threat {
   }
 }
 
-/** Enemies in a normal room: one per slot it covers. None in the start or boss room. */
-export const enemiesPerSlot = 1
+/**
+ * How many enemies a normal room gets, by its size in slots (1 for the smallest rooms, 7
+ * for the big flower rooms): a random count in a range that grows with the room. None
+ * spawn in the start or boss room.
+ */
+export function enemyCount(slots: number, roll: number): number {
+  const [min, max] = slots >= 4 ? [5, 6] : slots === 3 ? [3, 4] : slots === 2 ? [2, 3] : [1, 2]
+  return min + Math.floor(roll * (max - min + 1))
+}

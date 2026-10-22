@@ -15,21 +15,24 @@ export function MenuFrame({ title, onBack, children }: { title: string; onBack: 
     return () => window.removeEventListener('keydown', onKey)
   }, [onBack])
 
+  // The backdrop stays put; only the content scrolls over it.
   return (
-    <main className="relative flex h-full flex-col items-center overflow-y-auto px-4 py-8">
+    <main className="relative h-full overflow-hidden">
       <Backdrop />
-      <div className="relative flex w-full max-w-3xl flex-col">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <h1 className="font-display text-2xl font-bold tracking-[0.18em] text-text uppercase drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:text-3xl">{title}</h1>
-          <button
-            type="button"
-            onClick={onBack}
-            className="border border-line bg-hull/90 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
-          >
-            Back
-          </button>
+      <div className="relative flex h-full flex-col items-center overflow-y-auto px-4 py-8">
+        <div className="flex w-full max-w-3xl flex-col">
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <h1 className="font-display text-2xl font-bold tracking-[0.18em] text-text uppercase drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:text-3xl">{title}</h1>
+            <button
+              type="button"
+              onClick={onBack}
+              className="border border-line bg-hull/90 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
+            >
+              Back
+            </button>
+          </div>
+          {children}
         </div>
-        {children}
       </div>
     </main>
   )

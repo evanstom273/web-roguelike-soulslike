@@ -21,6 +21,12 @@ export interface RoomGeometry {
   room: Room
   cells: Vec[][] // hex polygons
   centre: Vec
+  /** Its doorways: the gap in the wall, and the middle of the cell behind it (inside the room). */
+  doors: Doorway[]
+}
+
+export interface Doorway extends Segment {
+  inside: Vec
 }
 
 export interface HallwayGeometry {
@@ -84,6 +90,7 @@ export function buildFloorGeometry(floor: Floor): FloorGeometry {
 
   const rooms: RoomGeometry[] = floor.rooms.map((room) => {
     const own = new Set(room.cells.map(hexKey))
+    const doors: Doorway[] = []
     for (const cell of room.cells) {
       const c = corners(cell)
       EDGE_NEIGHBOURS.forEach((n, i) => {
@@ -94,6 +101,7 @@ export function buildFloorGeometry(floor: Floor): FloorGeometry {
           // Leave a gap the width of the hallway in the middle of this edge.
           const gap = HALLWAY_WIDTH / 2 / CELL_SIZE
           walls.push({ a: p, b: lerp(p, q, 0.5 - gap) }, { a: lerp(p, q, 0.5 + gap), b: q })
+          doors.push({ a: lerp(p, q, 0.5 - gap), b: lerp(p, q, 0.5 + gap), inside: hexToPixel(cell, CELL_SIZE) })
         } else {
           walls.push({ a: p, b: q })
         }
@@ -102,6 +110,7 @@ export function buildFloorGeometry(floor: Floor): FloorGeometry {
     const slots = room.slots.map((s) => hexToPixel(s, CELL_SIZE))
     return {
       room,
+      doors,
       cells: room.cells.map(corners),
       centre: {
         x: slots.reduce((t, p) => t + p.x, 0) / slots.length,

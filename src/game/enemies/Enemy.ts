@@ -55,6 +55,8 @@ export class Enemy implements Caster {
   facing = Math.PI / 2
   /** Faded out after dying; can be dropped. */
   removed = false
+  /** Not looking for you yet: woken when you come into its room, or by being hit. */
+  dormant = false
   onKilled: ((e: Enemy) => void) | null = null
 
   private world: CombatWorld
@@ -201,6 +203,7 @@ export class Enemy implements Caster {
 
   /** Sight: within range, with nothing in the way. Checked a few times a second. */
   private look(dt: number) {
+    if (this.dormant) return
     this.lookIn -= dt
     if (this.lookIn <= 0) {
       this.lookIn = LOOK_INTERVAL
@@ -216,8 +219,15 @@ export class Enemy implements Caster {
     }
   }
 
+  /** Starts looking for you. */
+  wake() {
+    this.dormant = false
+    this.lookIn = 0
+  }
+
   /** Hit by something: come and find out who did it. */
   private provoked() {
+    this.dormant = false
     if (!this.quarry.self.actor.alive) return
     this.lastSeen = { x: this.quarry.x, y: this.quarry.y }
     this.sinceSeen = 0

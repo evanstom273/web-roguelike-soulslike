@@ -17,7 +17,7 @@ import { panel } from './MenuFrame.tsx'
 
 const ATTRIBUTE_CAP = 99
 
-type Tab = 'levels' | 'upgrade' | 'shop' | 'checkpoint'
+type Tab = 'levels' | 'upgrade' | 'shop' | 'loadout' | 'checkpoint'
 
 export interface NextRun {
   character: Character
@@ -59,6 +59,8 @@ export function DeathScreen({
   const [startFloor, setStartFloor] = useState(1)
   const [boughtWeapons, setBoughtWeapons] = useState<string[]>([])
   const [boughtSpells, setBoughtSpells] = useState<string[]>([])
+  const [right, setRight] = useState(character.right)
+  const [left, setLeft] = useState<string | null>(character.left)
   const [confirming, setConfirming] = useState(false)
 
   const baseLevel = characterLevel(character.levels)
@@ -106,9 +108,11 @@ export function DeathScreen({
   }
   const buyWeapon = (w: WeaponDef) => {
     if (boughtWeapons.includes(w.id)) {
-      // Taking a purchase back also takes back any upgrades made to it.
+      // Taking a purchase back also takes back any upgrades made to it, and unequips it.
       setBoughtWeapons(boughtWeapons.filter((id) => id !== w.id))
       setUpgrades(Object.fromEntries(Object.entries(upgrades).filter(([id]) => id !== w.id)))
+      if (right === w.id) setRight(character.right)
+      if (left === w.id) setLeft(character.left)
     } else if (weaponPrice(w) <= runesLeft) {
       setBoughtWeapons([...boughtWeapons, w.id])
     }
@@ -133,6 +137,8 @@ export function DeathScreen({
         ...character,
         levels,
         weaponIds: owned,
+        right,
+        left,
         spellIds: [...character.spellIds, ...boughtSpells],
         weaponLevels: Object.fromEntries(Object.entries(upgrades).filter(([, l]) => l > 0)),
         shards: shardsLeft,
@@ -145,10 +151,11 @@ export function DeathScreen({
   const forSaleWeapons = [...WEAPONS.values()].filter((w) => !character.weaponIds.includes(w.id)).sort((a, b) => weaponPrice(a) - weaponPrice(b))
   const forSaleSpells = [...SPELLS.values()].filter((sp) => !sp.basic && !character.spellIds.includes(sp.id)).sort((a, b) => spellPrice(a) - spellPrice(b))
 
+  // Runes, tabs and the begin button stay on screen; long lists scroll in their panel.
   return (
-    <main className="relative flex h-full flex-col items-center overflow-y-auto px-4 py-8">
+    <main className="relative h-full overflow-hidden">
       <Backdrop />
-      <div className="relative flex w-full max-w-3xl flex-col">
+      <div className="relative mx-auto flex h-full w-full max-w-3xl flex-col px-4 py-6">
         <h1 className="font-display text-2xl font-bold tracking-[0.18em] text-text uppercase drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:text-3xl">Spend your runes</h1>
         <p className="mt-2 text-[0.65rem] tracking-[0.25em] text-dim uppercase">Whatever you don't spend is lost when the next run begins.</p>
 
@@ -159,27 +166,28 @@ export function DeathScreen({
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-4 gap-1.5">
+        <div className="mt-4 grid grid-cols-5 gap-1">
           {(
             [
               ['levels', 'Level up'],
               ['upgrade', 'Upgrade'],
               ['shop', 'Shop'],
-              ['checkpoint', 'Checkpoint'],
+              ['loadout', 'Loadout'],
+              ['checkpoint', 'Start'],
             ] as const
           ).map(([id, name]) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`border px-1 py-2 text-[0.6rem] font-semibold tracking-[0.12em] uppercase sm:text-[0.65rem] sm:tracking-[0.2em] ${tab === id ? 'border-ember bg-panel text-ember' : 'border-line bg-hull/90 text-text hover:border-ember/60'}`}
+              className={`border px-0.5 py-2 text-[0.55rem] font-semibold tracking-[0.08em] uppercase sm:text-[0.65rem] sm:tracking-[0.18em] ${tab === id ? 'border-ember bg-panel text-ember' : 'border-line bg-hull/90 text-text hover:border-ember/60'}`}
             >
               {name}
             </button>
           ))}
         </div>
 
-        <section className={`${panel} mt-3 border border-line bg-hull/90 p-4`}>
+        <section className={`${panel} mt-3 min-h-0 overflow-y-auto overscroll-contain border border-line bg-hull/90 p-4`}>
           {tab === 'levels' && (
             <>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -299,6 +307,51 @@ export function DeathScreen({
             </>
           )}
 
+          {tab === 'loadout' && (
+            <>
+              <p className="text-xs text-dim">What you start the run holding. Everything else you own can still be swapped in during the run.</p>
+              {(
+                [
+                  ['Right hand', right, (id: string | null) => setRight(id!), left],
+                  ['Left hand', left, (id: string | null) => setLeft(id), right],
+                ] as const
+              ).map(([hand, held, choose, other]) => (
+                <div key={hand} className="mt-4">
+                  <h2 className="text-[0.65rem] tracking-[0.25em] text-dim uppercase">{hand}</h2>
+                  <ul className="mt-1 space-y-1">
+                    {[...(hand === 'Left hand' ? [null] : []), ...owned].map((id) => {
+                      const w = id ? getWeapon(id) : null
+                      const inOther = id !== null && id === other
+                      const unmet = w ? Object.entries(w.requirements).filter(([a, n]) => levels[a as AttributeId] < n!) : []
+                      return (
+                        <li key={id ?? 'empty'}>
+                          <button
+                            type="button"
+                            disabled={inOther}
+                            onClick={() => {
+                              choose(id)
+                              setConfirming(false)
+                            }}
+                            className={`flex w-full items-center justify-between gap-3 border px-3 py-2 text-left disabled:opacity-35 ${held === id ? 'border-ember bg-panel' : 'border-line bg-void/40 hover:border-ember/60'}`}
+                          >
+                            <span className={`text-sm tracking-[0.12em] uppercase ${held === id ? 'text-ember' : 'text-text'}`}>
+                              {w ? `${w.name} +${upgrades[w.id] ?? 0}` : 'Empty'}
+                            </span>
+                            <span className="text-xs text-dim">
+                              {inOther
+                                ? `In the ${hand === 'Right hand' ? 'left' : 'right'} hand`
+                                : unmet.length > 0 && <span className="text-blood">Needs {unmet.map(([a, n]) => `${ATTRIBUTES[a as AttributeId].short} ${n}`).join(', ')}</span>}
+                            </span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </>
+          )}
+
           {tab === 'checkpoint' && (
             <>
               <p className="text-xs text-dim">
@@ -330,7 +383,7 @@ export function DeathScreen({
           )}
         </section>
 
-        <div className="mt-5 flex flex-col items-center gap-2">
+        <div className="mt-4 flex shrink-0 flex-col items-center gap-2">
           <button
             type="button"
             onClick={begin}
