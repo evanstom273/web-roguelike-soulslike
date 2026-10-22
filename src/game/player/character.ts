@@ -6,6 +6,8 @@ import type { SpellDef, WeaponDef } from '../data/types.ts'
 // Everything about the player that persists between runs or gets changed in menus:
 // attribute levels (bought on the post-death screen) and equipment.
 export interface Character {
+  /** Whose art to draw: a class id (warrior, dex, magic). */
+  appearance: string
   levels: AttributeLevels
   weaponIds: string[] // everything owned; either hand can hold any of them
   right: string
@@ -14,6 +16,7 @@ export interface Character {
 }
 
 export interface Loadout {
+  appearance: string
   levels: AttributeLevels
   stats: DerivedStats
   weapons: WeaponDef[]
@@ -26,7 +29,8 @@ export interface Loadout {
  * The debug sandbox character: owns every weapon and spell so all of them can be tried
  * out, starting with a sword in the right hand and a shield in the left.
  */
-export const sandboxCharacter = (): Character => ({
+export const sandboxCharacter = (appearance = 'warrior'): Character => ({
+  appearance,
   levels: baseLevels(),
   weaponIds: ['straight-sword', 'wand', 'shield', ...[...WEAPONS.keys()].filter((id) => !['straight-sword', 'wand', 'shield'].includes(id)).sort()],
   right: 'straight-sword',
@@ -36,6 +40,7 @@ export const sandboxCharacter = (): Character => ({
 
 /** A fresh character of the given class, wearing its starting kit. */
 export const classCharacter = (c: ClassDef): Character => ({
+  appearance: c.id,
   levels: { ...c.levels },
   weaponIds: [...c.weaponIds],
   right: c.right,
@@ -46,6 +51,7 @@ export const classCharacter = (c: ClassDef): Character => ({
 export function resolveLoadout(c: Character): Loadout {
   const basics = [...SPELLS.values()].filter((s) => s.basic)
   return {
+    appearance: c.appearance,
     levels: c.levels,
     stats: deriveStats(c.levels),
     weapons: c.weaponIds.map(getWeapon),

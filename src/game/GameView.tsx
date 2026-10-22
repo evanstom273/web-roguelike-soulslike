@@ -19,6 +19,7 @@ export function GameView({
   saveId,
   onQuit,
   onSandboxDepth,
+  onSandboxLook,
 }: {
   seed: string
   floor: number
@@ -27,6 +28,8 @@ export function GameView({
   onQuit: () => void
   /** Sandbox only: jump to the next biome. */
   onSandboxDepth?: () => void
+  /** Sandbox only: switch to the next class's look. */
+  onSandboxLook?: () => void
 }) {
   const host = useRef<HTMLDivElement>(null)
   const loadout = useMemo(() => resolveLoadout(character), [character])
@@ -68,6 +71,15 @@ export function GameView({
         <span className="text-[0.6rem] tracking-[0.25em] text-dim uppercase">
           {biomeForFloor(floor).name} · Floor {floor}
         </span>
+        {onSandboxLook && (
+          <button
+            type="button"
+            onClick={onSandboxLook}
+            className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
+          >
+            Look
+          </button>
+        )}
         {onSandboxDepth && (
           <button
             type="button"

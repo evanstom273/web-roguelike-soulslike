@@ -11,11 +11,11 @@ export default defineWeapon({
   requirements: {},
   art: {
     url: artUrl,
-    width: 123,
-    height: 18,
+    width: 98.4,
+    height: 14.4,
     grip: {
-      x: 61.5,
-      y: 9,
+      x: 49.2,
+      y: 7.2,
     },
     // Held diagonally across the front so the back blade clears the body.
     rest: -40,

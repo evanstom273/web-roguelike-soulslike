@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { FloorDebug } from './debug/FloorDebug.tsx'
+import { CLASSES } from './game/data/classes.ts'
 import { sandboxCharacter, type Character } from './game/player/character.ts'
 import { randomSeed } from './game/random.ts'
 import { BIOMES, biomeForFloor } from './game/world/biomes.ts'
@@ -19,12 +20,25 @@ type Screen =
   // saveId null = sandbox: owns everything, nothing is saved.
   | { name: 'run'; saveId: number | null; character: Character; seed: string; floor: number }
 
-const runFor = (save: Save): Screen => ({ name: 'run', saveId: save.id, character: save.character, seed: save.seed, floor: save.floor })
+// Saves from before characters had their own look fall back to their class.
+const runFor = (save: Save): Screen => ({
+  name: 'run',
+  saveId: save.id,
+  character: { ...save.character, appearance: save.character.appearance ?? save.classId },
+  seed: save.seed,
+  floor: save.floor,
+})
 
 /** First floor of the biome after this one, wrapping back to the surface. */
 function nextBiomeFloor(floor: number) {
   const i = BIOMES.indexOf(biomeForFloor(floor))
   return BIOMES[(i + 1) % BIOMES.length].fromFloor
+}
+
+/** The next class's look, for trying them all in the sandbox. */
+function nextLook(look: string) {
+  const i = CLASSES.findIndex((c) => c.id === look)
+  return CLASSES[(i + 1) % CLASSES.length].id
 }
 
 export default function App() {
@@ -56,6 +70,7 @@ export default function App() {
           onQuit={toMenu}
           // Sandbox: step through the biomes (surface, underground, depths) on fresh floors.
           onSandboxDepth={screen.saveId === null ? () => setScreen({ ...screen, seed: randomSeed(), floor: nextBiomeFloor(screen.floor) }) : undefined}
+          onSandboxLook={screen.saveId === null ? () => setScreen({ ...screen, character: { ...screen.character, appearance: nextLook(screen.character.appearance) } }) : undefined}
         />
       </Suspense>
     )

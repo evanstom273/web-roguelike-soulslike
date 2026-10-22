@@ -7,15 +7,15 @@ import { generateFloor } from './dungeon/generateFloor.ts'
 import type { HudStore } from './hudStore.ts'
 import type { ActionButton, InputState } from './input.ts'
 import type { Loadout } from './player/character.ts'
-import { Player, playerTextureKey, weaponTextureKey } from './player/Player.ts'
+import { CHARACTER_PARTS, characterTextureKey, Player, weaponTextureKey } from './player/Player.ts'
 import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
 import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
 import { buildFloorGeometry, type Vec } from './world/floorGeometry.ts'
 import { DRAWN, LAYER } from './world/projection.ts'
 import { DUMMY_TEXTURE, TrainingDummy } from './world/TrainingDummy.ts'
 
-// The warrior's art for each drawn direction (the westward ones are mirrored in game).
-const PLAYER_ART = import.meta.glob('./art/characters/warrior/*.svg', { eager: true, query: '?no-inline', import: 'default' }) as Record<string, string>
+// Each class's art: four layers per drawn direction (the westward ones are mirrored in game).
+const CHARACTER_ART = import.meta.glob('./art/characters/*/*.svg', { eager: true, query: '?no-inline', import: 'default' }) as Record<string, string>
 
 export interface RunSceneData {
   seed: string
@@ -54,7 +54,12 @@ export class RunScene extends Phaser.Scene {
 
   preload() {
     // Rasterised at native size: 1 SVG unit = 1 world pixel.
-    for (const d of DRAWN) this.load.svg(playerTextureKey(d), PLAYER_ART[`./art/characters/warrior/${d}.svg`], { width: 96, height: 128 })
+    const look = this.run.loadout.appearance
+    for (const d of DRAWN) {
+      for (const part of CHARACTER_PARTS) {
+        this.load.svg(characterTextureKey(look, d, part), CHARACTER_ART[`./art/characters/${look}/${d}-${part}.svg`], { width: 96, height: 128 })
+      }
+    }
     this.load.svg(DUMMY_TEXTURE, dummyUrl, { width: 96, height: 128 })
     preloadEnvironment(this, this.biome)
     for (const w of this.run.loadout.weapons) {

@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "art:env": "node tools/environment-art.mjs"
+    "art:env": "node tools/environment-art.mjs",
+    "art:characters": "node tools/characters.mjs"
   },
   "dependencies": {
     "dexie": "^4.4.6",
