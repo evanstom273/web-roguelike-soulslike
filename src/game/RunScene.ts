@@ -15,7 +15,7 @@ export interface RunSceneData {
 }
 
 // How much of the world fits on the shorter screen side, in world px.
-const VIEW_SHORT_SIDE = 560
+const VIEW_SHORT_SIDE = 750
 
 export class RunScene extends Phaser.Scene {
   private run!: RunSceneData
@@ -65,7 +65,7 @@ export class RunScene extends Phaser.Scene {
 
   private fitCamera() {
     const { width, height } = this.scale.gameSize
-    this.cameras.main.setZoom(Phaser.Math.Clamp(Math.min(width, height) / VIEW_SHORT_SIDE, 0.6, 1.4))
+    this.cameras.main.setZoom(Phaser.Math.Clamp(Math.min(width, height) / VIEW_SHORT_SIDE, 0.45, 1.05))
   }
 
   update(_time: number, deltaMs: number) {
