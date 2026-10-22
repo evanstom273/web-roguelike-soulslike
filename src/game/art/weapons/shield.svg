@@ -1,17 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="34" height="84" viewBox="0 0 34 84">
-  <!-- Heater shield held up in front, seen from directly above: the curved top edge and
-       the boss, not the face. Grip pivot at (8, 42). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="44" height="56" viewBox="0 0 44 56">
+  <!-- Heater shield, three-quarter view: the painted face, held upright on the arm.
+       Grip at the centre (22, 26). -->
   <defs>
-    <linearGradient id="sh-wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7a5434"/><stop offset="1" stop-color="#3a2512"/></linearGradient>
-    <linearGradient id="sh-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b3b7bb"/><stop offset="1" stop-color="#43474b"/></linearGradient>
+    <linearGradient id="sh-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b7bbbf"/><stop offset="1" stop-color="#3a3e42"/></linearGradient>
+    <linearGradient id="sh-wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6a4a2c"/><stop offset="1" stop-color="#2a1a0c"/></linearGradient>
+    <radialGradient id="sh-boss" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#e2e5e8"/><stop offset="1" stop-color="#4a4e52"/></radialGradient>
   </defs>
   <g stroke="#141618" stroke-width="1.2" stroke-linejoin="round">
-    <path d="M10 2 C22 10 27 26 27 42 C27 58 22 74 10 82 L5 79 C15 71 19 57 19 42 C19 27 15 13 5 5 Z" fill="url(#sh-rim)"/>
-    <path d="M10.5 5.5 C20.5 13 23.5 27 23.5 42 C23.5 57 20.5 71 10.5 78.5 L8 77 C16.5 69 19.5 56 19.5 42 C19.5 28 16.5 15 8 7 Z" fill="url(#sh-wood)" stroke-width="0.8"/>
-    <path d="M12 9 C19 16 22 28 22 40" stroke="#a87d55" stroke-opacity="0.6" stroke-width="0.8" fill="none"/>
-    <path d="M20 34 C29 35 32 38 32 42 C32 46 29 49 20 50 Z" fill="url(#sh-rim)"/>
-    <path d="M22 37 C27 37.5 29 39 29.5 41" stroke="#eef0f2" stroke-opacity="0.8" stroke-width="0.8" fill="none"/>
-    <path d="M5 38 L19 38 L19 46 L5 46 Z" fill="#3b2715"/>
-    <path d="M7 6 C9 4 11 3.5 13 4.5 M7 78 C9 80 11 80.5 13 79.5" stroke="#d9dcdf" stroke-opacity="0.5" stroke-width="0.7" fill="none"/>
+    <path d="M2 2 L42 2 L42 22 C42 36 32 48 22 54 C12 48 2 36 2 22 Z" fill="url(#sh-rim)"/>
+    <path d="M5.5 5.5 L38.5 5.5 L38.5 22 C38.5 34 30.5 44.5 22 49.5 C13.5 44.5 5.5 34 5.5 22 Z" fill="url(#sh-wood)" stroke-width="0.8"/>
+    <path d="M22 6 L22 49 M6 20 L38 20" stroke="#8e1f1c" stroke-width="5" fill="none" stroke-linecap="butt"/>
+    <path d="M22 6 L22 49 M6 20 L38 20" stroke="#b33a32" stroke-opacity="0.5" stroke-width="1.2" fill="none" transform="translate(-1 -1)"/>
+    <circle cx="22" cy="20" r="5.5" fill="url(#sh-boss)"/>
+    <path d="M8 8 C14 7 22 6.6 30 7" stroke="#d8b48a" stroke-opacity="0.5" stroke-width="0.9" fill="none"/>
+    <path d="M9 30 L12 33 M30 36 L33 32" stroke="#000" stroke-opacity="0.5" stroke-width="1" fill="none"/>
   </g>
 </svg>

@@ -1,6 +1,8 @@
 // Generates the environment SVGs in src/game/art/environment/<biome>/.
 // Run with `npm run art:env`. Deterministic: the same script always writes the same files.
-// Everything is strictly overhead, lit from the top-left, 1 SVG unit = 1 world px.
+// Ground pieces (floors, fills, paths, decals) are drawn flat as seen from above; standing
+// pieces (columns, braziers, torches) are drawn in three-quarter view with their foot at the
+// bottom centre. Lit from the top-left, 1 SVG unit = 1 world px.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -467,6 +469,77 @@ function pillar(b) {
 }
 
 // ---------------------------------------------------------------------------
+// Standing pieces, three-quarter view. WALL_H must match the game's wall height.
+
+const WALL_H = 140
+
+/** A fluted column the height of the walls, with a square capital and base. */
+function column(b) {
+  rnd = rngFrom(`column-${b.name}`)
+  const W = 60
+  const H = WALL_H + 30
+  const base = b.wall[0]
+  const x0 = 12
+  const x1 = W - 12
+  let body = `<defs>${COMMON_DEFS}
+    <linearGradient id="shaft" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${shade(base, 0.15)}"/><stop offset="0.35" stop-color="${shade(base, 0.05)}"/><stop offset="1" stop-color="${shade(base, -0.45)}"/></linearGradient>
+    <linearGradient id="block" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${shade(base, 0.1)}"/><stop offset="1" stop-color="${shade(base, -0.35)}"/></linearGradient></defs>`
+  body += `<ellipse cx="${W / 2 + 6}" cy="${H - 4}" rx="${W / 2}" ry="7" fill="url(#soft)"/>`
+  // Base block, shaft with flutes, capital block with its top face showing.
+  body += `<path d="M6 ${H - 16} L${W - 6} ${H - 16} L${W - 6} ${H - 2} L6 ${H - 2} Z" fill="url(#block)" stroke="#000" stroke-opacity="0.5" stroke-width="1.5"/>`
+  body += `<path d="M${x0} 26 L${x1} 26 L${x1} ${H - 16} L${x0} ${H - 16} Z" fill="url(#shaft)" stroke="#000" stroke-opacity="0.5" stroke-width="1.5"/>`
+  for (let i = 1; i < 5; i++) {
+    const x = x0 + ((x1 - x0) * i) / 5
+    body += `<path d="M${f(x)} 30 L${f(x)} ${H - 20}" stroke="#000" stroke-opacity="0.28" stroke-width="2"/><path d="M${f(x - 1.5)} 30 L${f(x - 1.5)} ${H - 20}" stroke="#fff" stroke-opacity="0.1" stroke-width="1"/>`
+  }
+  for (let i = 0; i < 3; i++) body += crack([[x0, R(40, H - 40)], [x1, R(40, H - 40)], [R(x0, x1), R(40, H - 40)]])
+  body += `<path d="M4 14 L${W - 4} 14 L${W - 4} 28 L4 28 Z" fill="url(#block)" stroke="#000" stroke-opacity="0.5" stroke-width="1.5"/>`
+  body += `<path d="M4 14 L12 4 L${W - 4} 4 L${W - 4} 14 Z" fill="${shade(base, 0.12)}" stroke="#000" stroke-opacity="0.45" stroke-width="1.5"/>`
+  body += `<path d="M14 5.5 L${W - 6} 5.5" stroke="#fff" stroke-opacity="0.25" stroke-width="1"/>`
+  if (b.moss.length) {
+    body += moss(x0 + 6, H - 22, 8, b) + moss(W - 12, 10, 6, b)
+  }
+  return svg(W, H, body)
+}
+
+/** A standing iron brazier on three legs, burning. */
+function brazierStand(b) {
+  rnd = rngFrom(`brazier-stand-${b.name}`)
+  const W = 64
+  const H = 96
+  const [core, mid, outer] = b.brazierFire
+  let body = `<defs>${COMMON_DEFS}
+    <linearGradient id="iron" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a5048"/><stop offset="1" stop-color="#191512"/></linearGradient>
+    <radialGradient id="flame" cx="50%" cy="80%" r="70%"><stop offset="0" stop-color="${core}"/><stop offset="0.45" stop-color="${mid}"/><stop offset="1" stop-color="${outer}" stop-opacity="0"/></radialGradient></defs>`
+  body += `<ellipse cx="${W / 2 + 4}" cy="${H - 5}" rx="24" ry="6" fill="url(#soft)"/>`
+  body += `<g stroke="#0d0b09" stroke-width="2" stroke-linecap="round" fill="none"><path d="M${W / 2} 50 L14 ${H - 4}"/><path d="M${W / 2} 50 L${W - 14} ${H - 4}"/><path d="M${W / 2} 50 L${W / 2 + 2} ${H - 2}"/></g>`
+  body += `<g stroke="url(#iron)" stroke-width="3.5" stroke-linecap="round" fill="none"><path d="M${W / 2} 50 L14 ${H - 4}"/><path d="M${W / 2} 50 L${W - 14} ${H - 4}"/><path d="M${W / 2} 50 L${W / 2 + 2} ${H - 2}"/></g>`
+  body += `<path d="M8 40 C10 54 54 54 56 40 Z" fill="url(#iron)" stroke="#0d0b09" stroke-width="2"/>`
+  body += `<ellipse cx="${W / 2}" cy="40" rx="24" ry="6" fill="#120d09" stroke="#0d0b09" stroke-width="2"/>`
+  for (let i = 0; i < 10; i++) body += `<circle cx="${f(W / 2 + R(-18, 18))}" cy="${f(40 + R(-3, 3))}" r="${f(R(2, 3.5))}" fill="${pick([outer, mid, '#3a1a0c'])}"/>`
+  body += `<path d="M14 40 C14 26 24 16 30 2 C33 14 38 18 42 8 C45 20 52 28 50 40 Z" fill="url(#flame)"/>`
+  body += `<path d="M24 40 C24 32 29 26 32 18 C35 26 40 32 40 40 Z" fill="${core}" fill-opacity="0.8"/>`
+  body += `<path d="M10 43 C16 47 26 48 32 48" stroke="#fff" stroke-opacity="0.18" stroke-width="1.5" fill="none"/>`
+  return svg(W, H, body)
+}
+
+/** A torch in an iron bracket, for fixing to a wall face. Flame at the top. */
+function torch(b) {
+  rnd = rngFrom(`torch-${b.name}`)
+  const W = 28
+  const H = 64
+  const [core, mid, outer] = b.brazierFire
+  let body = `<defs><radialGradient id="tflame" cx="50%" cy="80%" r="70%"><stop offset="0" stop-color="${core}"/><stop offset="0.5" stop-color="${mid}"/><stop offset="1" stop-color="${outer}" stop-opacity="0"/></radialGradient></defs>`
+  body += `<path d="M10 ${H - 6} L18 ${H - 6} L17 ${H} L11 ${H} Z" fill="#2a2420" stroke="#0d0b09" stroke-width="1.5"/>`
+  body += `<path d="M14 ${H - 6} L14 ${H - 14}" stroke="#2a2420" stroke-width="3"/>`
+  body += `<path d="M11 24 L17 24 L16 ${H - 12} L12 ${H - 12} Z" fill="#5a3a20" stroke="#140d07" stroke-width="1.5"/>`
+  body += `<path d="M9 22 L19 22 L18 28 L10 28 Z" fill="#3a2a1a" stroke="#140d07" stroke-width="1.5"/>`
+  body += `<path d="M5 24 C5 14 10 10 14 0 C16 8 20 10 22 6 C24 14 24 20 23 24 Z" fill="url(#tflame)"/>`
+  body += `<path d="M10 24 C10 18 13 14 14 8 C16 14 18 18 18 24 Z" fill="${core}" fill-opacity="0.85"/>`
+  return svg(W, H, body)
+}
+
+// ---------------------------------------------------------------------------
 // Props and decals
 
 function brazier(b) {
@@ -643,6 +716,9 @@ for (const [name, b] of Object.entries(BIOMES)) {
   write(`${name}/rubble.svg`, rubble(b))
   write(`${name}/puddle.svg`, puddle(b))
   write(`${name}/threshold.svg`, threshold(b))
+  write(`${name}/column.svg`, column(b))
+  write(`${name}/brazier-stand.svg`, brazierStand(b))
+  write(`${name}/torch.svg`, torch(b))
   if (name === 'surface') {
     write(`${name}/vines.svg`, vines(b))
     write(`${name}/foliage.svg`, foliage(b))

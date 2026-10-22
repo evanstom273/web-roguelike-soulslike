@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser'
 import type { DamageMap } from '../data/damageTypes.ts'
 import type { Vec } from '../world/floorGeometry.ts'
+import { HAND_HEIGHT, LAYER } from '../world/projection.ts'
 
 // Spell visuals: additive glow layers, a particle pool and short-lived effects (impact
 // flashes, shockwave rings, lightning bolts). Purely cosmetic: nothing here touches combat.
@@ -129,8 +130,9 @@ export class Vfx {
   private bolts: Bolt[] = []
 
   constructor(scene: Phaser.Scene) {
-    this.ground = scene.add.graphics().setDepth(7).setBlendMode(Phaser.BlendModes.ADD)
-    this.air = scene.add.graphics().setDepth(12).setBlendMode(Phaser.BlendModes.ADD)
+    this.ground = scene.add.graphics().setDepth(LAYER.vfxGround).setBlendMode(Phaser.BlendModes.ADD)
+    // Things in the air fly at hand height: their logic stays on the ground plane.
+    this.air = scene.add.graphics().setDepth(LAYER.vfxAir).setBlendMode(Phaser.BlendModes.ADD).setY(-HAND_HEIGHT)
   }
 
   /** Clears the layers; deliveries draw after this, then `end` draws the shared effects. */

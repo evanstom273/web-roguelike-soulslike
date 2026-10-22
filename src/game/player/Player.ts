@@ -9,6 +9,7 @@ import type { CombatWorld, Target } from '../combat/CombatWorld.ts'
 import type { Caster, SpellSystem } from '../combat/SpellSystem.ts'
 import type { ActionButton } from '../input.ts'
 import { resolveWalls, type Segment, type Vec } from '../world/floorGeometry.ts'
+import { facing8, HAND_HEIGHT, LAYER, standingDepth } from '../world/projection.ts'
 import type { Loadout } from './character.ts'
 
 // The player character: movement, dodge, melee, casting. Feel and numbers follow the
@@ -43,11 +44,16 @@ type State =
   | { kind: 'dash' } // a dash spell is moving us
 
 const RADIUS = 30 // collision circle
-// Each hand relative to body centre (facing +x), and the angle its weapon rests at.
+// Each hand on the ground plane relative to the body centre (facing +x: x forward, y to the
+// right), and the angle its weapon rests at. Drawn HAND_HEIGHT above the ground.
 const HANDS: Record<Hand, { x: number; y: number; rest: number }> = {
-  right: { x: 21.75, y: 17.25, rest: 0.5 },
-  left: { x: 18.75, y: -17.25, rest: -0.5 },
+  right: { x: 8, y: 20, rest: 0.5 },
+  left: { x: 8, y: -20, rest: -0.5 },
 }
+// Sideways and forward hand offsets look deeper than they are in three-quarter view.
+const HAND_DEPTH = 0.5
+// The body sprite's feet, in its 96 x 128 art.
+const FEET = { x: 48, y: 118 }
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const degToRad = (d: number) => (d * Math.PI) / 180
@@ -105,6 +111,7 @@ export class Player implements Caster {
   private fx: Phaser.GameObjects.Graphics
   private trail: { x: number; y: number; age: number }[] = []
   private trailGfx: Phaser.GameObjects.Graphics
+  private walkCycle = 0
 
   constructor(scene: Phaser.Scene, spawn: Vec, walls: Segment[], loadout: Loadout, world: CombatWorld, spells: SpellSystem, getStatus: (id: string) => StatusDef) {
     this.walls = walls
@@ -123,16 +130,16 @@ export class Player implements Caster {
     this.actor.onStaminaRestored = (n) => (this.stamina = Math.min(this.maxStamina, this.stamina + n))
     this.self = world.add({ actor: this.actor, team: 'player', x: this.x, y: this.y, radius: RADIUS })
 
-    this.trailGfx = scene.add.graphics().setDepth(9)
-    this.fx = scene.add.graphics().setDepth(11)
+    this.trailGfx = scene.add.graphics().setDepth(LAYER.trail)
+    this.fx = scene.add.graphics().setDepth(LAYER.fx)
     this.rightId = loadout.right.id
     this.leftId = loadout.left?.id ?? null
     this.weaponImages = {
-      right: scene.add.image(HANDS.right.x, HANDS.right.y, weaponTextureKey(loadout.right.id)),
-      left: scene.add.image(HANDS.left.x, HANDS.left.y, weaponTextureKey(loadout.right.id)),
+      right: scene.add.image(0, 0, weaponTextureKey(loadout.right.id)),
+      left: scene.add.image(0, 0, weaponTextureKey(loadout.right.id)),
     }
-    this.body = scene.add.image(0, 0, 'player')
-    this.root = scene.add.container(this.x, this.y, [this.weaponImages.right, this.weaponImages.left, this.body]).setDepth(10)
+    this.body = scene.add.image(0, 0, playerTextureKey('s')).setOrigin(FEET.x / 96, FEET.y / 128)
+    this.root = scene.add.container(this.x, this.y, [this.weaponImages.right, this.weaponImages.left, this.body]).setDepth(standingDepth(this.y))
     this.showWeapon('right')
     this.showWeapon('left')
   }
@@ -722,8 +729,14 @@ export class Player implements Caster {
   // ---- Rendering ----------------------------------------------------------
 
   private render(dt: number) {
-    this.root.setPosition(this.x, this.y).setRotation(this.facing)
+    this.root.setPosition(this.x, this.y).setDepth(standingDepth(this.y))
     this.fx.clear()
+
+    // Pick the drawn direction nearest the facing; westward ones are mirrored.
+    const view = facing8(this.facing)
+    this.body.setTexture(playerTextureKey(view.art)).setFlipX(view.flip)
+    this.walkCycle = Math.hypot(this.vx, this.vy) > 20 ? this.walkCycle + dt * 11 : 0
+    this.body.y = -Math.abs(Math.sin(this.walkCycle)) * 2.5
 
     const rolling = this.state.kind === 'roll'
     this.root.setScale(rolling ? 0.9 : 1)
@@ -733,7 +746,7 @@ export class Player implements Caster {
     this.trail = this.trail.filter((g) => (g.age += dt) < 0.22)
     for (const g of this.trail) {
       this.trailGfx.fillStyle(0xd9c8a0, 0.14 * (1 - g.age / 0.22))
-      this.trailGfx.fillCircle(g.x, g.y, RADIUS + 2)
+      this.trailGfx.fillEllipse(g.x, g.y - 50, RADIUS * 2.2, 110)
     }
 
     for (const h of ['right', 'left'] as const) {
@@ -760,8 +773,33 @@ export class Player implements Caster {
       else leftAngle = raised
       if (this.state.kind === 'cast' && !this.state.released) this.drawCastGlow(t, this.state.spell.colour)
     }
-    this.weaponImages.right.setRotation(weaponAngle)
-    this.weaponImages.left.setRotation(leftAngle)
+    this.placeWeapon('right', weaponAngle, view.angle)
+    this.placeWeapon('left', leftAngle, view.angle)
+  }
+
+  /** A hand's offset from the feet on screen, for the drawn direction. */
+  private handOffset(hand: Hand, bodyAngle: number) {
+    const h = HANDS[hand]
+    const gx = h.x * Math.cos(bodyAngle) - h.y * Math.sin(bodyAngle)
+    const gy = h.x * Math.sin(bodyAngle) + h.y * Math.cos(bodyAngle)
+    return { x: gx, y: gy * HAND_DEPTH - HAND_HEIGHT, inFront: gy > 0 }
+  }
+
+  /** Puts a weapon in its hand, pointing along `angle` (from facing), in front of or behind the body. */
+  private placeWeapon(hand: Hand, angle: number, bodyAngle: number) {
+    const img = this.weaponImages[hand]
+    const w = this.held(hand)
+    if (!w) return
+    const at = this.handOffset(hand, bodyAngle)
+    img.setPosition(at.x, at.y + this.body.y)
+    if (w.art.upright) {
+      // Shields stay upright, tilting a little as they're used and narrowing side-on.
+      img.setRotation((angle - this.restAngle(hand)) * 0.35).setScale(Math.max(0.4, Math.abs(Math.sin(this.facing))), 1)
+    } else {
+      img.setRotation(this.facing + angle).setScale(1)
+    }
+    if (at.inFront) this.root.bringToTop(img)
+    else this.root.sendToBack(img)
   }
 
   /** Idle weapon angle from facing: the weapon's own, or the hand's default. */
@@ -795,21 +833,19 @@ export class Player implements Caster {
     const thickness = s.swing === 'light' ? 10 : s.swing === 'heavy' ? 16 : 22
     this.fx.lineStyle(thickness, colour, 0.35 * fade)
     this.fx.beginPath()
-    this.fx.arc(this.x, this.y, reach - thickness / 2, Math.min(from, to), Math.max(from, to))
+    this.fx.arc(this.x, this.y - HAND_HEIGHT, reach - thickness / 2, Math.min(from, to), Math.max(from, to))
     this.fx.strokePath()
     this.fx.lineStyle(2, 0xffffff, 0.6 * fade)
     this.fx.beginPath()
-    this.fx.arc(this.x, this.y, reach, Math.min(from, to), Math.max(from, to))
+    this.fx.arc(this.x, this.y - HAND_HEIGHT, reach, Math.min(from, to), Math.max(from, to))
     this.fx.strokePath()
   }
 
+  /** Where a held weapon's tip is on screen. */
   private weaponTip(angleFromFacing: number, length: number, hand: Hand = 'right') {
     const a = this.facing + angleFromFacing
-    const h = HANDS[hand]
-    return {
-      x: this.x + Math.cos(this.facing) * h.x - Math.sin(this.facing) * h.y + Math.cos(a) * length,
-      y: this.y + Math.sin(this.facing) * h.x + Math.cos(this.facing) * h.y + Math.sin(a) * length,
-    }
+    const at = this.handOffset(hand, facing8(this.facing).angle)
+    return { x: this.x + at.x + Math.cos(a) * length, y: this.y + at.y + Math.sin(a) * length }
   }
 
   private drawChargeGlow() {
@@ -819,7 +855,7 @@ export class Player implements Caster {
     this.fx.fillStyle(0xffa04a, 0.15 + 0.25 * c)
     this.fx.fillCircle(tip.x, tip.y, 6 + 12 * c)
     this.fx.lineStyle(2, 0xffa04a, 0.3 + 0.5 * c)
-    this.fx.strokeCircle(this.x, this.y, RADIUS + 10 + 30 * (1 - c))
+    this.fx.strokeEllipse(this.x, this.y, (RADIUS + 10 + 30 * (1 - c)) * 2, (RADIUS + 10 + 30 * (1 - c)) * 1.2)
   }
 
   private drawCastGlow(progress: number, colour: string) {
@@ -838,3 +874,4 @@ const LOCK_HOLD = 0.35
 const CHARGE_TIME = 0.5
 
 export const weaponTextureKey = (id: string) => `weapon:${id}`
+export const playerTextureKey = (direction: string) => `player:${direction}`

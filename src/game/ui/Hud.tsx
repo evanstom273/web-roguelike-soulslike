@@ -42,14 +42,15 @@ function Slot({ children, className = '', onTap, label }: { children?: React.Rea
   )
 }
 
-// A weapon's own art, laid diagonally across its slot.
+// A weapon's own art, laid diagonally across its slot (shields stand upright).
 function WeaponArt({ weapon }: { weapon: WeaponDef }) {
+  const upright = weapon.art.upright
   return (
     <img
       src={weapon.art.url}
       alt={weapon.name}
-      className="max-w-none -rotate-45"
-      style={{ width: '130%', aspectRatio: `${weapon.art.width} / ${weapon.art.height}` }}
+      className={`max-w-none ${upright ? '' : '-rotate-45'}`}
+      style={{ width: upright ? '62%' : '130%', aspectRatio: `${weapon.art.width} / ${weapon.art.height}` }}
       draggable={false}
     />
   )

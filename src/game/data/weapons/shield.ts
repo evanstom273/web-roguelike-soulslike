@@ -11,14 +11,14 @@ export default defineWeapon({
   requirements: {},
   art: {
     url: artUrl,
-    width: 25.5,
-    height: 63,
+    width: 30,
+    height: 38,
     grip: {
-      x: 6,
-      y: 31.5,
+      x: 15,
+      y: 18,
     },
-    // Held squarely in front.
-    rest: 10,
+    // Shown face-on and held upright rather than pointed like a blade.
+    upright: true,
   },
   light: {
     name: 'Court bash',
