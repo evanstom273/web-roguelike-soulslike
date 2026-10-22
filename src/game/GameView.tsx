@@ -5,13 +5,29 @@ import { HudStore } from './hudStore.ts'
 import { InputState } from './input.ts'
 import { resolveLoadout, type Character } from './player/character.ts'
 import { RunScene, type RunSceneData } from './RunScene.ts'
+import { biomeForFloor } from './world/biomes.ts'
 import { Hud } from './ui/Hud.tsx'
 import { TouchControls } from './ui/TouchControls.tsx'
 
 const isTouchDevice = () => window.matchMedia('(pointer: coarse)').matches
 
 /** `saveId` null = sandbox: nothing is recorded. */
-export function GameView({ seed, character, saveId, onQuit }: { seed: string; character: Character; saveId: number | null; onQuit: () => void }) {
+export function GameView({
+  seed,
+  floor,
+  character,
+  saveId,
+  onQuit,
+  onSandboxDepth,
+}: {
+  seed: string
+  floor: number
+  character: Character
+  saveId: number | null
+  onQuit: () => void
+  /** Sandbox only: jump to the next biome. */
+  onSandboxDepth?: () => void
+}) {
   const host = useRef<HTMLDivElement>(null)
   const loadout = useMemo(() => resolveLoadout(character), [character])
   const input = useMemo(() => new InputState(), [])
@@ -22,14 +38,14 @@ export function GameView({ seed, character, saveId, onQuit }: { seed: string; ch
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: host.current!,
-      backgroundColor: '#05070d',
+      backgroundColor: '#0a0907',
       scale: { mode: Phaser.Scale.RESIZE },
       banner: false,
     })
-    const data: RunSceneData = { seed, loadout, input, hud }
+    const data: RunSceneData = { seed, floor, loadout, input, hud }
     game.scene.add('run', RunScene, true, data)
     return () => game.destroy(true)
-  }, [seed, loadout, input, hud])
+  }, [seed, floor, loadout, input, hud])
 
   usePlayTime(saveId)
 
@@ -49,11 +65,22 @@ export function GameView({ seed, character, saveId, onQuit }: { seed: string; ch
       <Hud store={hud} touch={touch} input={input} />
 
       <div className={`absolute right-4 flex items-center gap-3 ${touch ? 'top-14' : 'top-4'}`}>
-        <span className="text-[0.6rem] tracking-[0.25em] text-dim uppercase">Seed {seed}</span>
+        <span className="text-[0.6rem] tracking-[0.25em] text-dim uppercase">
+          {biomeForFloor(floor).name} · Floor {floor}
+        </span>
+        {onSandboxDepth && (
+          <button
+            type="button"
+            onClick={onSandboxDepth}
+            className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
+          >
+            Deeper
+          </button>
+        )}
         <button
           type="button"
           onClick={onQuit}
-          className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-neon hover:text-neon"
+          className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
         >
           Quit
         </button>

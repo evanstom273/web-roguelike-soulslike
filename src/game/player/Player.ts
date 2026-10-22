@@ -732,7 +732,7 @@ export class Player implements Caster {
     this.trailGfx.clear()
     this.trail = this.trail.filter((g) => (g.age += dt) < 0.22)
     for (const g of this.trail) {
-      this.trailGfx.fillStyle(0x38e8ff, 0.18 * (1 - g.age / 0.22))
+      this.trailGfx.fillStyle(0xd9c8a0, 0.14 * (1 - g.age / 0.22))
       this.trailGfx.fillCircle(g.x, g.y, RADIUS + 2)
     }
 
@@ -791,7 +791,7 @@ export class Player implements Caster {
     const from = this.facing + s.side * half
     const to = from - s.side * 2 * half * easeOut(progress)
     const im = this.imbues[s.hand]
-    const colour = im ? parseInt(im.colour.slice(1), 16) : s.swing === 'charged' || s.swing === 'skill' ? 0xff3d8b : 0xbff8ff
+    const colour = im ? parseInt(im.colour.slice(1), 16) : s.swing === 'charged' || s.swing === 'skill' ? 0xffa04a : 0xe8e2d0
     const thickness = s.swing === 'light' ? 10 : s.swing === 'heavy' ? 16 : 22
     this.fx.lineStyle(thickness, colour, 0.35 * fade)
     this.fx.beginPath()
@@ -816,9 +816,9 @@ export class Player implements Caster {
     const c = this.charge
     const art = this.weapon.art
     const tip = this.weaponTip(this.restAngle('right') + 1.9, art.width - art.grip.x - 6)
-    this.fx.fillStyle(0xff3d8b, 0.15 + 0.25 * c)
+    this.fx.fillStyle(0xffa04a, 0.15 + 0.25 * c)
     this.fx.fillCircle(tip.x, tip.y, 6 + 12 * c)
-    this.fx.lineStyle(2, 0xff3d8b, 0.3 + 0.5 * c)
+    this.fx.lineStyle(2, 0xffa04a, 0.3 + 0.5 * c)
     this.fx.strokeCircle(this.x, this.y, RADIUS + 10 + 30 * (1 - c))
   }
 

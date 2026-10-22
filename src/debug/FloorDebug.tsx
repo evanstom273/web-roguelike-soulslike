@@ -155,7 +155,7 @@ export function FloorDebug({ onBack }: { onBack: () => void }) {
   }
 
   const button =
-    'border border-line bg-hull px-3 py-2 text-xs font-semibold tracking-[0.2em] uppercase text-text transition-colors hover:border-neon hover:text-neon'
+    'border border-line bg-hull px-3 py-2 text-xs font-semibold tracking-[0.2em] uppercase text-text transition-colors hover:border-ember hover:text-ember'
 
   return (
     <main className="flex h-full flex-col bg-void">
@@ -163,7 +163,7 @@ export function FloorDebug({ onBack }: { onBack: () => void }) {
         <button type="button" onClick={onBack} className={button}>
           ← Menu
         </button>
-        <h1 className="mr-auto font-display text-sm tracking-[0.2em] text-neon uppercase">Floor Generator</h1>
+        <h1 className="mr-auto font-display text-sm tracking-[0.2em] text-ember uppercase">Floor Generator</h1>
 
         <form
           className="flex w-full flex-wrap items-center gap-2 sm:w-auto"
@@ -182,12 +182,12 @@ export function FloorDebug({ onBack }: { onBack: () => void }) {
             spellCheck={false}
             autoComplete="off"
             placeholder="Seed"
-            className="w-full border border-line bg-void px-3 py-2 font-mono text-sm tracking-widest text-text uppercase outline-none focus:border-neon sm:w-40"
+            className="w-full border border-line bg-void px-3 py-2 font-mono text-sm tracking-widest text-text uppercase outline-none focus:border-ember sm:w-40"
           />
           <button type="submit" className={button}>
             Generate
           </button>
-          <button type="button" onClick={reroll} className={`${button} border-hazard/60 text-hazard`}>
+          <button type="button" onClick={reroll} className={`${button} border-blood/60 text-blood`}>
             Random
           </button>
           <select
@@ -219,7 +219,7 @@ export function FloorDebug({ onBack }: { onBack: () => void }) {
           Loops <span style={{ color: LOOP_HALLWAY }}>{loops}</span>
         </span>
         <span>
-          Boss depth <span className="text-hazard">{floor.bossDepth}</span>
+          Boss depth <span className="text-blood">{floor.bossDepth}</span>
         </span>
       </div>
 
@@ -229,10 +229,10 @@ export function FloorDebug({ onBack }: { onBack: () => void }) {
 
       <footer className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-3 text-[0.65rem] tracking-[0.15em] text-dim uppercase">
         <span>
-          <span className="text-neon">S</span> start
+          <span className="text-ember">S</span> start
         </span>
         <span>
-          <span className="text-hazard">B</span> boss (big, dead end)
+          <span className="text-blood">B</span> boss (big, dead end)
         </span>
         <span>
           <span style={{ color: LOOP_HALLWAY }}>━</span> loop hallway

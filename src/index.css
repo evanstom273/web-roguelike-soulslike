@@ -1,17 +1,17 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-void: #05070d;
-  --color-hull: #0c111c;
-  --color-panel: #121a29;
-  --color-line: #1f2b40;
-  --color-text: #d7e2f2;
-  --color-dim: #6f7f99;
-  --color-neon: #38e8ff;
-  --color-hazard: #ff3d8b;
+  --color-void: #0a0907;
+  --color-hull: #15120e;
+  --color-panel: #201b14;
+  --color-line: #3b3226;
+  --color-text: #e8dcc2;
+  --color-dim: #8f816a;
+  --color-ember: #d9a35b;
+  --color-blood: #b8402f;
 
-  --font-display: 'Orbitron', ui-sans-serif, system-ui, sans-serif;
-  --font-ui: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Cinzel', ui-serif, Georgia, serif;
+  --font-ui: 'Alegreya Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
@@ -44,6 +44,29 @@ body {
   93% { opacity: 0.55; }
   94% { opacity: 1; }
   97% { opacity: 0.8; }
+}
+
+/* Firelight: an uneven, never-quite-repeating waver. */
+@keyframes firelight {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  17% { opacity: 1; transform: scale(1.04); }
+  33% { opacity: 0.82; transform: scale(0.98); }
+  51% { opacity: 0.96; transform: scale(1.03); }
+  68% { opacity: 0.86; transform: scale(0.99); }
+  84% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Embers lifting off the braziers: seen from above they drift on the air and burn out. */
+@keyframes ember-drift {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.4); opacity: 0; }
+}
+
+/* A slow drift over the ruins on the title screen. */
+@keyframes pan {
+  from { transform: translate(-2%, -1%) scale(1.06); }
+  to { transform: translate(2%, 1%) scale(1.06); }
 }
 
 @media (prefers-reduced-motion: reduce) {

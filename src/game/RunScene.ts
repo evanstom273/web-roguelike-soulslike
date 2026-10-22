@@ -8,11 +8,14 @@ import type { HudStore } from './hudStore.ts'
 import type { ActionButton, InputState } from './input.ts'
 import type { Loadout } from './player/character.ts'
 import { Player, weaponTextureKey } from './player/Player.ts'
-import { buildFloorGeometry, type FloorGeometry, type Vec } from './world/floorGeometry.ts'
+import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
+import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
+import { buildFloorGeometry, type Vec } from './world/floorGeometry.ts'
 import { TrainingDummy } from './world/TrainingDummy.ts'
 
 export interface RunSceneData {
   seed: string
+  floor: number // which floor of the descent; picks the biome
   loadout: Loadout
   input: InputState
   hud: HudStore
@@ -31,6 +34,8 @@ export class RunScene extends Phaser.Scene {
   private mousePressed = new Set<ActionButton>()
   private hitStop = 0
   private reticle!: Phaser.GameObjects.Graphics
+  private biome!: BiomeDef
+  private env!: Environment
   // Camera target that tracks the player without the camera owning the player object.
   private playerAnchor = { x: 0, y: 0 }
 
@@ -40,11 +45,13 @@ export class RunScene extends Phaser.Scene {
 
   init(data: RunSceneData) {
     this.run = data
+    this.biome = biomeForFloor(data.floor)
   }
 
   preload() {
     // Rasterised at native size: 1 SVG unit = 1 world pixel.
     this.load.svg('player', playerUrl, { width: 96, height: 96 })
+    preloadEnvironment(this, this.biome)
     for (const w of this.run.loadout.weapons) {
       this.load.svg(weaponTextureKey(w.id), w.art.url, { width: w.art.width, height: w.art.height })
     }
@@ -53,7 +60,7 @@ export class RunScene extends Phaser.Scene {
   create() {
     const floor = generateFloor(this.run.seed, { width: 16, height: 16 })
     const geometry = buildFloorGeometry(floor)
-    this.drawFloor(geometry)
+    this.env = buildEnvironment(this, floor, geometry, this.biome)
 
     this.world = new CombatWorld(geometry.walls)
     this.world.onHit = (hit) => this.onHit(hit)
@@ -67,7 +74,6 @@ export class RunScene extends Phaser.Scene {
     this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 120, y: geometry.spawn.y + 230 }, getStatus))
 
     const cam = this.cameras.main
-    cam.setBackgroundColor('#05070d')
     this.playerAnchor.x = geometry.spawn.x
     this.playerAnchor.y = geometry.spawn.y
     cam.startFollow(this.playerAnchor, false, 0.18, 0.18)
@@ -100,10 +106,10 @@ export class RunScene extends Phaser.Scene {
     if (amount <= 0) return
     const text = this.add
       .text(at.x + (Math.random() - 0.5) * 20, at.y - 40, String(amount), {
-        fontFamily: 'Chakra Petch, sans-serif',
+        fontFamily: 'Cinzel, serif',
         fontSize: periodic ? '16px' : '22px',
-        color: periodic ? '#c9b6ff' : '#fff4d6',
-        stroke: '#05070d',
+        color: periodic ? '#d9c08a' : '#fff4d6',
+        stroke: '#0a0907',
         strokeThickness: 4,
       })
       .setOrigin(0.5)
@@ -169,6 +175,8 @@ export class RunScene extends Phaser.Scene {
     }
     this.playerAnchor.x = this.player.x
     this.playerAnchor.y = this.player.y
+    this.env.follow(this.player)
+    this.env.update(_time)
     this.drawReticle(_time)
 
     const p = this.player
@@ -213,37 +221,7 @@ export class RunScene extends Phaser.Scene {
       g.arc(t.x, t.y, r, a - 0.35, a + 0.35)
       g.strokePath()
     }
-    g.fillStyle(0xff3d8b, 0.9)
+    g.fillStyle(0xd9a35b, 0.95)
     g.fillCircle(t.x, t.y - r - 8, 4)
-  }
-
-  // Placeholder floor rendering so there's somewhere to move. Not final environment art.
-  private drawFloor(g: FloorGeometry) {
-    const gfx = this.add.graphics().setDepth(0)
-    const fill = (pts: Vec[], colour: number, alpha = 1) => {
-      gfx.fillStyle(colour, alpha)
-      gfx.fillPoints(pts.map((p) => new Phaser.Math.Vector2(p.x, p.y)), true)
-    }
-
-    for (const h of g.hallways) fill(h.corners, 0x0e1522)
-    for (const r of g.rooms) {
-      const colour = r.room.kind === 'boss' ? 0x241122 : r.room.kind === 'start' ? 0x0f2128 : 0x121a29
-      for (const cell of r.cells) fill(cell, colour)
-      // Faint panel seams between cells.
-      gfx.lineStyle(2, 0x1c2a42, 0.8)
-      for (const cell of r.cells) gfx.strokePoints(cell.map((p) => new Phaser.Math.Vector2(p.x, p.y)), true)
-    }
-
-    const walls = this.add.graphics().setDepth(5)
-    walls.lineStyle(14, 0x1d2840, 1)
-    walls.fillStyle(0x1d2840, 1)
-    for (const w of g.walls) {
-      walls.lineBetween(w.a.x, w.a.y, w.b.x, w.b.y)
-      // Round joints so angled wall segments meet without notches.
-      walls.fillCircle(w.a.x, w.a.y, 7)
-      walls.fillCircle(w.b.x, w.b.y, 7)
-    }
-    walls.lineStyle(3, 0x38e8ff, 0.45)
-    for (const w of g.walls) walls.lineBetween(w.a.x, w.a.y, w.b.x, w.b.y)
   }
 }

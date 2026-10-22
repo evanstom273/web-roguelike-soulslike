@@ -118,7 +118,7 @@ interface Bolt {
 const MAX_PARTICLES = 1400
 
 export class Vfx {
-  /** Under characters, over the floor: zones, runes, telegraphs. */
+  /** Under characters, over the floor and its darkness: zones, runes, telegraphs. */
   readonly ground: Phaser.GameObjects.Graphics
   /** Over characters: projectiles, beams, sparks. */
   readonly air: Phaser.GameObjects.Graphics
@@ -129,7 +129,7 @@ export class Vfx {
   private bolts: Bolt[] = []
 
   constructor(scene: Phaser.Scene) {
-    this.ground = scene.add.graphics().setDepth(1).setBlendMode(Phaser.BlendModes.ADD)
+    this.ground = scene.add.graphics().setDepth(7).setBlendMode(Phaser.BlendModes.ADD)
     this.air = scene.add.graphics().setDepth(12).setBlendMode(Phaser.BlendModes.ADD)
   }
 

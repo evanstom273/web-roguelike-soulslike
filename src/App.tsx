@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { FloorDebug } from './debug/FloorDebug.tsx'
 import { sandboxCharacter, type Character } from './game/player/character.ts'
 import { randomSeed } from './game/random.ts'
+import { BIOMES, biomeForFloor } from './game/world/biomes.ts'
 import { ClassSelect } from './menu/ClassSelect.tsx'
 import { LoadScreen } from './menu/LoadScreen.tsx'
 import { MainMenu } from './menu/MainMenu.tsx'
@@ -16,9 +17,15 @@ type Screen =
   | { name: 'new' }
   | { name: 'floor-debug' }
   // saveId null = sandbox: owns everything, nothing is saved.
-  | { name: 'run'; saveId: number | null; character: Character; seed: string }
+  | { name: 'run'; saveId: number | null; character: Character; seed: string; floor: number }
 
-const runFor = (save: Save): Screen => ({ name: 'run', saveId: save.id, character: save.character, seed: save.seed })
+const runFor = (save: Save): Screen => ({ name: 'run', saveId: save.id, character: save.character, seed: save.seed, floor: save.floor })
+
+/** First floor of the biome after this one, wrapping back to the surface. */
+function nextBiomeFloor(floor: number) {
+  const i = BIOMES.indexOf(biomeForFloor(floor))
+  return BIOMES[(i + 1) % BIOMES.length].fromFloor
+}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'menu' })
@@ -41,7 +48,15 @@ export default function App() {
   if (screen.name === 'run') {
     return (
       <Suspense fallback={<div className="flex h-full items-center justify-center text-xs tracking-[0.4em] text-dim uppercase">Loading</div>}>
-        <GameView seed={screen.seed} character={screen.character} saveId={screen.saveId} onQuit={toMenu} />
+        <GameView
+          seed={screen.seed}
+          floor={screen.floor}
+          character={screen.character}
+          saveId={screen.saveId}
+          onQuit={toMenu}
+          // Sandbox: step through the biomes (surface, underground, depths) on fresh floors.
+          onSandboxDepth={screen.saveId === null ? () => setScreen({ ...screen, seed: randomSeed(), floor: nextBiomeFloor(screen.floor) }) : undefined}
+        />
       </Suspense>
     )
   }
@@ -54,7 +69,7 @@ export default function App() {
       onContinue={() => latest && setScreen(runFor(latest))}
       onLoad={() => setScreen({ name: 'load' })}
       onNewGame={() => setScreen({ name: 'new' })}
-      onSandbox={() => setScreen({ name: 'run', saveId: null, character: sandboxCharacter(), seed: randomSeed() })}
+      onSandbox={() => setScreen({ name: 'run', saveId: null, character: sandboxCharacter(), seed: randomSeed(), floor: 1 })}
       onOpenFloorDebug={() => setScreen({ name: 'floor-debug' })}
     />
   )
