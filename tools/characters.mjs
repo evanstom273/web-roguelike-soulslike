@@ -3,8 +3,10 @@
 //
 // Every character shares one skeleton so weapons and animation fit them all:
 //   96 x 128 canvas, feet at (48, 118), hips at y 86.
-//   Hands (right, left): s (28,86) (68,86) · se (39.5,92) (68,78) · e (56,92) (56,72)
-//                        ne (68,86) (39.5,72) · n (68,78) (28,78)
+//   Hands at rest (right, left): s (28,86) (68,86) · se (39.5,92) (68,78) · e (56,92) (56,72)
+//                                ne (68,86) (39.5,72) · n (68,78) (28,78)
+// Arms aren't part of the body layers: they're separate jointed pieces (ARMS below) that
+// the game poses from the shoulders to the hands every frame.
 // Each direction is split into layers the game animates separately, back to front:
 //   back  - capes, scarf tails and far limbs behind the legs
 //   leg-a - the leg on screen left (in side views, the far leg)
@@ -47,9 +49,6 @@ const circ = (x, y, r, fill, extra = '') => `    <circle cx="${x}" cy="${y}" r="
 // ---------------------------------------------------------------------------
 // Shared pieces
 
-/** A glove or gauntlet centred on a hand point. */
-const hand = (x, y, fill) => P(`M${x - 5} ${y - 5} L${x + 5} ${y - 5} L${x + 5} ${y + 3} C${x + 2} ${y + 5.5} ${x - 2} ${y + 5.5} ${x - 5} ${y + 3} Z`, fill) + line(`M${x - 3.5} ${y - 1} L${x + 3.5} ${y - 1}`, '#16181a', 0.7)
-const bareHand = (x, y) => P(`M${x - 4} ${y - 4} C${x - 1} ${y - 6} ${x + 3} ${y - 5} ${x + 4.5} ${y - 2} C${x + 4.5} ${y + 2} ${x + 2} ${y + 4.5} ${x - 1} ${y + 4} C${x - 4} ${y + 3} ${x - 5} ${y} ${x - 4} ${y - 4} Z`, 'url(#skinG)', ' stroke="#3a2c1e"')
 
 /** A leg from the hip (y 86) to the foot (y 118), x0..x1 wide. */
 function leg(x0, x1, kind, dark = false) {
@@ -110,39 +109,35 @@ const WARRIOR = {
       P('M32 73 L64 73 L66 89 C55 91 41 91 30 89 Z', 'url(#mail)') + P('M33.5 73 L47 73 L46.5 85 L33 84 Z', 'url(#steel)') + P('M49 73 L62.5 73 L63 84 L49.5 85 Z', 'url(#steelD)') +
       P('M32 44 C40 40.5 56 40.5 64 44 L65.5 66 C60 73 36 73 30.5 66 Z', 'url(#steel)') + line('M48 44 L48 70', '#2a2d30') + line('M36 47 C40 45 44 44.5 46 44.5', '#eef0f2', 1, 0.8) +
       P('M30.5 70 L65.5 70 L65.5 75 L30.5 75 Z', 'url(#leatherG)') + `    <rect x="45.5" y="70.5" width="5" height="4" fill="#b08a3e" stroke-width="0.7"/>\n` +
-      P('M23 50 L32 50 L33 71 L24 71 Z', 'url(#steel)') + P('M64 50 L73 50 L72 71 L63 71 Z', 'url(#steelD)') + circ(28, 67, 3.4, 'url(#steel)') + circ(68, 67, 3.4, 'url(#steelD)') +
-      P('M23.5 70 L32.5 70 L32 80 L24.5 80 Z', 'url(#steelD)') + P('M63.5 70 L72.5 70 L71.5 80 L64 80 Z', 'url(#steelD)') +
-      hand(28, 84, 'url(#steel)') + hand(68, 84, 'url(#steelD)') + pauldron(17, 1) + pauldron(79, -1, 'url(#steelD)', 'url(#steelD)', false) + fur(30, 66) + helm(48, [37.5, 58.5, 48]),
+      pauldron(17, 1) + pauldron(79, -1, 'url(#steelD)', 'url(#steelD)', false) + fur(30, 66) + helm(48, [37.5, 58.5, 48]),
   },
   se: {
-    back: P('M62 52 L70 52 L70 70 L63 72 Z', '#3a3e42') + hand(68, 76, '#3a3e42') + P('M36 44 C27 58 21 86 18 115 L25 112 L30 116 L36 112 L44 112 L46 60 Z', 'url(#capeG)') + line('M33 52 C27 70 24 92 23 110', '#3a0b0c', 1.2),
+    back: P('M36 44 C27 58 21 86 18 115 L25 112 L30 116 L36 112 L44 112 L46 60 Z', 'url(#capeG)') + line('M33 52 C27 70 24 92 23 110', '#3a0b0c', 1.2),
     body:
       P('M33 73 L63 73 L64 89 C54 91 42 91 32 89 Z', 'url(#mail)') + P('M35 73 L48 73 L47.5 85 L34.5 84 Z', 'url(#steel)') + P('M50 73 L61.5 73 L62 84 L50.5 85 Z', 'url(#steelD)') +
       P('M34 44 C41 40.5 55 40.5 62 44.5 C64.5 52 64.5 60 63 67 C57.5 73 39 73 33 67 Z', 'url(#steel)') + line('M52 44 L53.5 70', '#2a2d30') + line('M38 47 C42 45 46 44.5 49 44.5', '#eef0f2', 1, 0.8) +
       P('M33 70 L63.5 70 L63.5 75 L33 75 Z', 'url(#leatherG)') + `    <rect x="50" y="70.5" width="5" height="4" fill="#b08a3e" stroke-width="0.7"/>\n` +
-      P('M30 51 L39 51 L41 73 L33 74 Z', 'url(#steel)') + circ(36.5, 70, 3.4, 'url(#steel)') + P('M33 73 L41 72 L42 87 L35 88 Z', 'url(#steelD)') + hand(39.5, 90, 'url(#steel)') +
       pauldron(24, 1) + pauldron(75, -1, 'url(#steelD)', '#33373b', false) + fur(33, 64) + helm(51, [42, 62, 55], false, 3),
   },
   e: {
-    back: P('M52 52 L58 52 L60 68 L55 70 Z', '#34373b') + hand(57, 71, '#3a3e42') + P('M44 42 C34 46 24 62 18 84 C15 96 14 108 14 116 L21 112 L25 117 L31 112 L36 116 L44 111 L46 62 Z', 'url(#capeG)') + line('M38 48 C30 62 26 84 24 110 M42 52 C37 70 34 90 33 110', '#3a0b0c', 1.2),
+    back: P('M44 42 C34 46 24 62 18 84 C15 96 14 108 14 116 L21 112 L25 117 L31 112 L36 116 L44 111 L46 62 Z', 'url(#capeG)') + line('M38 48 C30 62 26 84 24 110 M42 52 C37 70 34 90 33 110', '#3a0b0c', 1.2),
     body:
       P('M38 73 L60 73 L62 89 C54 91 44 91 37 89 Z', 'url(#mail)') + P('M47 73 L60 73 L61 85 L48 86 Z', 'url(#steel)') +
       P('M40 44 C46 40.5 55 41 61 45 C63.5 52 63.5 61 61.5 68 C56 73 44 73 39 68 C37.5 60 37.5 51 40 44 Z', 'url(#steel)') + line('M43 47 C47 44.5 52 44.2 56 45', '#eef0f2', 1, 0.8) +
-      P('M38.5 70 L62 70 L62 75 L38.5 75 Z', 'url(#leatherG)') + P('M44 54 L52 54 L54 74 L47 75 Z', 'url(#steel)') + circ(50, 72, 3.3, 'url(#steel)') + P('M47 74 L54 73 L57 86 L51 88 Z', 'url(#steelD)') + hand(56, 90, 'url(#steel)') +
+      P('M38.5 70 L62 70 L62 75 L38.5 75 Z', 'url(#leatherG)') +
       P('M36 52 C33 42 40 36 52 37.5 C57 39 58 45 55 49.5 C48 52.5 41 53.5 36 52 Z', 'url(#steel)') + P('M37 52 C43 54.5 50 54.5 55 51 L54.5 55.5 C49 58 42 58 37.5 56 Z', 'url(#steelD)') + line('M39 45 C42 40.6 47 39 51 39.4', '#f4f6f7', 1, 0.8) +
       fur(42, 60) + helm(51, [55, 63, 60], false, -6),
   },
   ne: {
-    back: hand(40, 71, '#33373b'),
+    back: '',
     body:
-      P('M60 52 L69 52 L71 74 L63 76 Z', 'url(#steelD)') + circ(67, 73, 3.3, 'url(#steelD)') + hand(68, 84, 'url(#steelD)') +
       pauldron(20, 1, 'url(#steelD)', 'url(#steelD)') + pauldron(77, -1, 'url(#steelD)', '#33373b', false) +
       P('M30 41 C40 37 54 37 63 41 C67 56 70 80 73 110 L67 107 L61 112 L55 107 L49 112 L43 107 L37 112 L31 107 L24 110 C26 80 27 56 30 41 Z', 'url(#capeG)') +
       line('M38 44 C36 64 34 86 33 108 M47 44 L48 106 M56 44 C58 64 61 86 63 108', '#3a0b0c', 1.6) + line('M33 44 C31 56 30 66 29 74', '#b33a32', 1, 0.6) +
       fur(30, 64) + helm(47, null, true) + `    <path d="M57 22 L59.5 22 L59.5 25 L57.3 25 Z" fill="#0b0c0d" stroke="none"/>\n`,
   },
   n: {
-    back: hand(28, 77, 'url(#steelD)') + hand(68, 77, '#3a3e42') + P('M22 50 L31 50 L31 74 L23 74 Z', 'url(#steelD)') + P('M65 50 L74 50 L73 74 L65 74 Z', '#33373b'),
+    back: '',
     body:
       pauldron(17, 1, 'url(#steelD)', 'url(#steelD)') + pauldron(79, -1, '#3a3e42', '#33373b', false) +
       P('M30 41 C40 37 56 37 66 41 C70 56 74 80 78 110 L72 107 L66 112 L60 107 L54 112 L48 107 L42 112 L36 107 L30 112 L24 107 L18 110 C22 80 26 56 30 41 Z', 'url(#capeG)') +
@@ -184,7 +179,6 @@ const gambeson = (x0, x1, top = 44) => {
   return s
 }
 const belts = (x0, x1) => P(`M${x0} 46 L${x0 + 4} 45 L${x1} 70 L${x1 - 4} 72 Z`, 'url(#leatherG)', ' stroke-width="0.9"') + P(`M${x1} 46 L${x1 - 4} 45 L${x0} 70 L${x0 + 4} 72 Z`, 'url(#leatherG)', ' stroke-width="0.9"') + P(`M${x0 - 1} 74 L${x1 + 1} 74 L${x1 + 1} 78 L${x0 - 1} 78 Z`, 'url(#leatherG)') + `    <rect x="${(x0 + x1) / 2 - 2}" y="${74.5}" width="4" height="3" fill="#b08a3e" stroke-width="0.6"/>\n`
-const sleeve = (sx, sy, hx, hy, fill = 'url(#quiltG)') => P(`M${sx - 4.5} ${sy} L${sx + 4.5} ${sy} L${hx + 4} ${hy - 12} L${hx - 4} ${hy - 12} Z`, fill) + P(`M${hx - 4.5} ${hy - 13} L${hx + 4.5} ${hy - 13} L${hx + 4} ${hy - 4} L${hx - 4} ${hy - 4} Z`, 'url(#leatherG)') + circ(hx, hy - 9, 0.8, '#c9cdd1', ' stroke-width="0.4"')
 const leatherPauldron = (cx, k) => P(`M${cx - 2 * k} 52 C${cx - 3 * k} 44 ${cx + 4 * k} 38.5 ${cx + 14 * k} 40 C${cx + 18 * k} 42 ${cx + 18 * k} 47 ${cx + 15 * k} 50.5 C${cx + 9 * k} 53 ${cx + 3 * k} 53.5 ${cx - 2 * k} 52 Z`, 'url(#leatherG)') + line(`M${cx + k} 46 C${cx + 4 * k} 42 ${cx + 9 * k} 40.5 ${cx + 13 * k} 41`, '#a37a52', 0.8, 0.6) + circ(cx + 4 * k, 49, 0.8, '#c9cdd1', ' stroke-width="0.4"') + circ(cx + 10 * k, 49.5, 0.8, '#c9cdd1', ' stroke-width="0.4"')
 const scarfTail = (d) => P(d, 'url(#scarfG)', ' stroke="#0b1d1f"')
 
@@ -192,22 +186,22 @@ const DEX = {
   legs: 'cloth',
   s: {
     back: scarfTail('M58 40 C66 46 72 56 76 70 L72 69 L74 74 C68 62 62 52 55 46 Z'),
-    body: sleeve(29, 50, 28, 86) + sleeve(67, 50, 68, 86) + hand(28, 85, '#3a2716') + hand(68, 85, '#2c1d10') + gambeson(35, 61) + belts(36, 60) + leatherPauldron(62, 1) + hood(48, 0),
+    body: gambeson(35, 61) + belts(36, 60) + leatherPauldron(62, 1) + hood(48, 0),
   },
   se: {
-    back: sleeve(64, 50, 68, 78, '#3a2d1e') + hand(68, 77, '#2c1d10') + scarfTail('M40 40 C32 46 26 56 22 70 L26 69 L24 74 C30 62 36 52 43 46 Z'),
-    body: gambeson(36, 61) + belts(37, 60) + sleeve(35, 50, 39.5, 92) + hand(39.5, 91, '#3a2716') + leatherPauldron(61, 1) + hood(50, 0.5),
+    back: scarfTail('M40 40 C32 46 26 56 22 70 L26 69 L24 74 C30 62 36 52 43 46 Z'),
+    body: gambeson(36, 61) + belts(37, 60) + leatherPauldron(61, 1) + hood(50, 0.5),
   },
   e: {
-    back: sleeve(52, 50, 56, 72, '#3a2d1e') + hand(56, 71, '#2c1d10') + scarfTail('M44 38 C34 40 24 46 14 52 L17 54 L12 58 C24 54 34 50 44 46 Z') + scarfTail('M44 42 C36 48 28 56 20 66 L23 66 L20 71 C28 62 36 54 45 49 Z'),
-    body: gambeson(40, 60) + P('M40 74 L60 74 L60 78 L40 78 Z', 'url(#leatherG)') + P('M43 46 L47 45 L58 70 L54 72 Z', 'url(#leatherG)', ' stroke-width="0.9"') + sleeve(50, 50, 56, 92) + hand(56, 91, '#3a2716') + leatherPauldron(42, 1) + hood(51, 1),
+    back: scarfTail('M44 38 C34 40 24 46 14 52 L17 54 L12 58 C24 54 34 50 44 46 Z') + scarfTail('M44 42 C36 48 28 56 20 66 L23 66 L20 71 C28 62 36 54 45 49 Z'),
+    body: gambeson(40, 60) + P('M40 74 L60 74 L60 78 L40 78 Z', 'url(#leatherG)') + P('M43 46 L47 45 L58 70 L54 72 Z', 'url(#leatherG)', ' stroke-width="0.9"') + leatherPauldron(42, 1) + hood(51, 1),
   },
   ne: {
-    back: hand(40, 71, '#2c1d10'),
-    body: gambeson(36, 60) + P('M38 46 L42 45 L58 70 L54 72 Z', 'url(#leatherG)', ' stroke-width="0.9"') + belts(36, 60).split('\n').slice(2).join('\n') + sleeve(64, 50, 68, 86) + hand(68, 85, '#2c1d10') + scarfTail('M42 40 C40 50 40 62 42 76 L38 74 L37 80 C34 66 35 52 38 42 Z') + hood(46, 0, true) + leatherPauldron(34, -1),
+    back: '',
+    body: gambeson(36, 60) + P('M38 46 L42 45 L58 70 L54 72 Z', 'url(#leatherG)', ' stroke-width="0.9"') + belts(36, 60).split('\n').slice(2).join('\n') + scarfTail('M42 40 C40 50 40 62 42 76 L38 74 L37 80 C34 66 35 52 38 42 Z') + hood(46, 0, true) + leatherPauldron(34, -1),
   },
   n: {
-    back: sleeve(29, 50, 28, 78, '#3a2d1e') + sleeve(67, 50, 68, 78, '#3a2d1e') + hand(28, 77, '#2c1d10') + hand(68, 77, '#2c1d10'),
+    back: '',
     body: gambeson(35, 61) + P('M35 74 L61 74 L61 78 L35 78 Z', 'url(#leatherG)') + scarfTail('M44 40 C42 50 42 62 44 78 L40 76 L39 82 C36 68 37 52 40 42 Z') + scarfTail('M52 40 C56 50 57 60 56 72 L59 70 L60 76 C61 62 60 50 55 42 Z') + leatherPauldron(34, -1) + hood(48, 0, true),
   },
 }
@@ -251,33 +245,75 @@ const mantle = (x0, x1, clasp) => {
   if (clasp !== null) s += circ(clasp, 45, 2.2, '#d6b45a', ' stroke="#4a3410" stroke-width="0.7"')
   return s
 }
-const bellSleeve = (sx, sy, hx, hy, fill = 'url(#robeG)') => P(`M${sx - 4} ${sy} L${sx + 4} ${sy} L${hx + 7} ${hy - 4} C${hx + 3} ${hy - 1} ${hx - 3} ${hy - 1} ${hx - 7} ${hy - 4} Z`, fill) + line(`M${hx - 6.5} ${hy - 3.5} C${hx - 3} ${hy - 1.5} ${hx + 3} ${hy - 1.5} ${hx + 6.5} ${hy - 3.5}`, '#c9a24a', 1.1)
 
 const MAGIC = {
   legs: 'robe',
   s: {
     back: '',
-    body: robe(34, 62, 28, 68) + line('M48 61 L48 110', '#c9a24a', 1.2) + bellSleeve(31, 50, 28, 86) + bellSleeve(65, 50, 68, 86) + bareHand(28, 86) + bareHand(68, 86) + mantle(34, 62, 48) + face(48, 0) + hat(48, 0.6),
+    body: robe(34, 62, 28, 68) + line('M48 61 L48 110', '#c9a24a', 1.2) + mantle(34, 62, 48) + face(48, 0) + hat(48, 0.6),
   },
   se: {
-    back: bellSleeve(63, 50, 68, 78, 'url(#robeD)') + bareHand(68, 78),
-    body: robe(35, 61, 29, 66) + line('M52 61 L54 110', '#c9a24a', 1.2) + bellSleeve(36, 50, 39.5, 92) + bareHand(39.5, 92) + mantle(35, 61, 53) + face(50, 0.5) + hat(50, -0.8),
+    back: '',
+    body: robe(35, 61, 29, 66) + line('M52 61 L54 110', '#c9a24a', 1.2) + mantle(35, 61, 53) + face(50, 0.5) + hat(50, -0.8),
   },
   e: {
-    back: bellSleeve(52, 50, 56, 72, 'url(#robeD)') + bareHand(56, 72) + P('M40 60 C32 76 24 96 18 114 L28 112 L40 104 Z', 'url(#robeD)'),
-    body: robe(40, 60, 32, 64) + line('M58 62 L62 110', '#c9a24a', 1.2) + bellSleeve(50, 50, 56, 92) + bareHand(56, 92) + mantle(40, 60, 59) + face(52, 1) + hat(51, -1),
+    back: P('M40 60 C32 76 24 96 18 114 L28 112 L40 104 Z', 'url(#robeD)'),
+    body: robe(40, 60, 32, 64) + line('M58 62 L62 110', '#c9a24a', 1.2) + mantle(40, 60, 59) + face(52, 1) + hat(51, -1),
   },
   ne: {
-    back: bareHand(40, 72),
-    body: robe(35, 61, 28, 67) + bellSleeve(63, 50, 68, 86) + bareHand(68, 86) + mantle(35, 61, null) + hat(47, -0.8, true),
+    back: '',
+    body: robe(35, 61, 28, 67) + mantle(35, 61, null) + hat(47, -0.8, true),
   },
   n: {
-    back: bareHand(28, 78) + bareHand(68, 78),
-    body: robe(34, 62, 27, 69) + bellSleeve(31, 50, 28, 78) + bellSleeve(65, 50, 68, 78) + mantle(34, 62, null) + hat(48, 0.6, true),
+    back: '',
+    body: robe(34, 62, 27, 69) + mantle(34, 62, null) + hat(48, 0.6, true),
   },
 }
 
 // ---------------------------------------------------------------------------
+// Arms: drawn as two pieces each class shares between both arms, jointed at the elbow and
+// posed in the game so the hands can reach, strike and follow through. Each is drawn
+// pointing +x from its pivot at (7, 9), lit from above; the game flips them pointing left.
+//   upper: shoulder (7, 9) to elbow (29, 9)
+//   fore:  elbow (7, 9) to the middle of the hand (31, 9)
+
+const ARM_DEFS = `<defs>
+    <linearGradient id="armSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d0d4d8"/><stop offset="0.5" stop-color="#7f8489"/><stop offset="1" stop-color="#34373b"/></linearGradient>
+    <linearGradient id="armSteelD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a3a8ad"/><stop offset="1" stop-color="#2b2e32"/></linearGradient>
+    <linearGradient id="armQuilt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f7a5c"/><stop offset="1" stop-color="#3a2d1e"/></linearGradient>
+    <linearGradient id="armLeather" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a5434"/><stop offset="1" stop-color="#2e1d0f"/></linearGradient>
+    <linearGradient id="armRobe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a4890"/><stop offset="1" stop-color="#1a1330"/></linearGradient>
+    <linearGradient id="armSkin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ecdcc0"/><stop offset="1" stop-color="#9c8466"/></linearGradient>
+  </defs>`
+const armSvg = (w, comment, body) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} 18" width="${w}" height="18">\n  <!-- ${comment} -->\n  ${ARM_DEFS}\n  <g stroke="#16181a" stroke-width="1.1" stroke-linejoin="round">\n${body}  </g>\n</svg>\n`
+
+const ARMS = {
+  warrior: {
+    upper:
+      P('M4 4.5 C10 3.5 24 3.5 28 4.5 L28 13.5 C24 14.5 10 14.5 4 13.5 Z', 'url(#armSteel)') +
+      line('M6 5.8 L26 5.8', '#fff', 0.8, 0.6) +
+      circ(29, 9, 4.2, 'url(#armSteel)'),
+    fore:
+      P('M5 5 L25 4.5 L25 13.5 L5 13 Z', 'url(#armSteelD)') + line('M7 6.2 L23 6', '#fff', 0.7, 0.45) +
+      P('M25 3.5 L35 4 C37.5 6 37.5 12 35 14 L25 14.5 Z', 'url(#armSteelD)') + line('M29 5 L29 13 M32 5 L32 13', '#16181a', 0.7, 0.8),
+  },
+  dex: {
+    upper:
+      P('M4 4 C10 3 24 3 29 4.5 L29 13.5 C24 15 10 15 4 14 Z', 'url(#armQuilt)') +
+      line('M12 4 L12 14 M20 4 L20 14', '#2a1f14', 0.7, 0.55),
+    fore:
+      P('M5 4.5 L15 4.5 L15 13.5 L5 13.5 Z', 'url(#armQuilt)') +
+      P('M15 4 L26 4 L26 14 L15 14 Z', 'url(#armLeather)') + circ(18.5, 9, 0.8, '#c9cdd1', ' stroke-width="0.4"') + circ(22.5, 9, 0.8, '#c9cdd1', ' stroke-width="0.4"') +
+      P('M26 4.5 L34 5 C36.5 7 36.5 11 34 13 L26 13.5 Z', '#33220f'),
+  },
+  magic: {
+    upper: P('M4 4 C10 3 24 3 29 4 L29 14 C24 15 10 15 4 14 Z', 'url(#armRobe)'),
+    fore:
+      P('M5 4 L25 1.5 C27 5 27 13 25 16.5 L5 14 Z', 'url(#armRobe)') + line('M25 2 C26.5 6 26.5 12 25 16', '#c9a24a', 1.2) +
+      P('M26.5 5.5 C30 4 34 5 35.5 8 C35.5 11 32.5 13.5 29 13 C27 12.5 26 10 26.5 5.5 Z', 'url(#armSkin)', ' stroke="#3a2c1e"'),
+  },
+}
 
 const CLASSES = { warrior: WARRIOR, dex: DEX, magic: MAGIC }
 for (const [name, c] of Object.entries(CLASSES)) {
@@ -289,5 +325,7 @@ for (const [name, c] of Object.entries(CLASSES)) {
       writeFileSync(join(OUT, name, `${dir}-${part}.svg`), svg(`${name}, facing ${dir}: ${part}. Feet at (48, 118).`, body))
     }
   }
+  writeFileSync(join(OUT, name, 'arm-upper.svg'), armSvg(36, `${name}: upper arm, shoulder (7, 9) to elbow (29, 9).`, ARMS[name].upper))
+  writeFileSync(join(OUT, name, 'arm-fore.svg'), armSvg(42, `${name}: forearm and hand, elbow (7, 9) to hand (31, 9).`, ARMS[name].fore))
 }
 console.log('characters written to', OUT)

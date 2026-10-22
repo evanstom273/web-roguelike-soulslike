@@ -27,11 +27,6 @@
     <path d="M60 46 L56 45 L37 70 L41 72 Z" fill="url(#leatherG)" stroke-width="0.9"/>
     <path d="M36 74 L61 74 L61 78 L36 78 Z" fill="url(#leatherG)"/>
     <rect x="46.5" y="74.5" width="4" height="3" fill="#b08a3e" stroke-width="0.6"/>
-    <path d="M30.5 50 L39.5 50 L43.5 80 L35.5 80 Z" fill="url(#quiltG)"/>
-    <path d="M35 79 L44 79 L43.5 88 L35.5 88 Z" fill="url(#leatherG)"/>
-    <circle cx="39.5" cy="83" r="0.8" fill="#c9cdd1" stroke-width="0.4"/>
-    <path d="M34.5 86 L44.5 86 L44.5 94 C41.5 96.5 37.5 96.5 34.5 94 Z" fill="#3a2716"/>
-    <path d="M36 90 L43 90" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
     <path d="M59 52 C58 44 65 38.5 75 40 C79 42 79 47 76 50.5 C70 53 64 53.5 59 52 Z" fill="url(#leatherG)"/>
     <path d="M62 46 C65 42 70 40.5 74 41" stroke="#a37a52" stroke-width="0.8" stroke-opacity="0.6" fill="none"/>
     <circle cx="65" cy="49" r="0.8" fill="#c9cdd1" stroke-width="0.4"/>

@@ -11,6 +11,7 @@ import type { ActionButton } from '../input.ts'
 import { resolveWalls, type Segment, type Vec } from '../world/floorGeometry.ts'
 import { facing8, HAND_HEIGHT, LAYER, standingDepth } from '../world/projection.ts'
 import type { Loadout } from './character.ts'
+import { CHARACTER_PARTS, CHARACTER_SHEET, characterTextureKey } from './characterSheet.ts'
 
 // The player character: movement, dodge, melee, casting. Feel and numbers follow the
 // Godot version (data/player.ts); weapons and spells come from the loadout's data.
@@ -63,8 +64,15 @@ const HIP_Y = 86
 const CAPE_Y = 44
 const MID = 56 // the figure turns about this point above the feet when rolling
 const HIPS: Record<string, [number, number]> = { s: [42, 54], se: [41, 53], e: [45, 51.5], ne: [41.5, 54.5], n: [41.5, 54.5] }
-const PARTS = ['back', 'leg-a', 'leg-b', 'body'] as const
+const PARTS = CHARACTER_PARTS
 type Part = (typeof PARTS)[number]
+// Arms are two drawn pieces jointed at the elbow (see tools/characters.mjs), posed every
+// frame from the shoulder to wherever the hand holds its weapon.
+const UPPER_ARM = 22
+const FOREARM = 24
+const ARM_PIVOT = 7 // the pieces' pivots, in their art
+const SHOULDER_HEIGHT = 66
+const SHOULDER_WIDTH: Record<string, number> = { warrior: 19, dex: 15, magic: 16 }
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const degToRad = (d: number) => (d * Math.PI) / 180
@@ -123,6 +131,9 @@ export class Player implements Caster {
   private shadow: Phaser.GameObjects.Ellipse
   private hurt = 0
   private weaponImages: Record<Hand, Phaser.GameObjects.Image>
+  private arms: Record<Hand, { upper: Phaser.GameObjects.Image; fore: Phaser.GameObjects.Image }>
+  /** The drawn torso's angle: the facing, turned into or through a swing. */
+  private torsoAngle = 0
   private fx: Phaser.GameObjects.Graphics
   private trail: { x: number; y: number; age: number }[] = []
   private trailGfx: Phaser.GameObjects.Graphics
@@ -153,12 +164,18 @@ export class Player implements Caster {
     this.fx = scene.add.graphics().setDepth(LAYER.fx)
     this.rightId = loadout.right.id
     this.leftId = loadout.left?.id ?? null
+    const armPiece = (piece: 'upper' | 'fore', width: number) =>
+      scene.add.image(0, 0, CHARACTER_SHEET, characterTextureKey(loadout.appearance, 'arm', piece)).setOrigin(ARM_PIVOT / width, 0.5)
+    this.arms = {
+      right: { upper: armPiece('upper', 36), fore: armPiece('fore', 42) },
+      left: { upper: armPiece('upper', 36), fore: armPiece('fore', 42) },
+    }
     this.weaponImages = {
       right: scene.add.image(0, 0, weaponTextureKey(loadout.right.id)),
       left: scene.add.image(0, 0, weaponTextureKey(loadout.right.id)),
     }
     const look = loadout.appearance
-    this.parts = Object.fromEntries(PARTS.map((p) => [p, scene.add.image(0, 0, characterTextureKey(look, 's', p))])) as Record<Part, Phaser.GameObjects.Image>
+    this.parts = Object.fromEntries(PARTS.map((p) => [p, scene.add.image(0, 0, CHARACTER_SHEET, characterTextureKey(look, 's', p))])) as Record<Part, Phaser.GameObjects.Image>
     this.figure = scene.add.container(0, -MID, PARTS.map((p) => this.parts[p]))
     this.shadow = scene.add.ellipse(0, 0, 58, 16, 0x000000, 0.4)
     this.root = scene.add.container(this.x, this.y, [this.shadow, this.weaponImages.right, this.weaponImages.left, this.figure]).setDepth(standingDepth(this.y))
@@ -799,13 +816,74 @@ export class Player implements Caster {
     const bodyAngle = facing8(this.facing).angle
     const rightFront = this.placeWeapon('right', weaponAngle, rightReach, bodyAngle)
     const leftFront = this.placeWeapon('left', leftAngle, leftReach, bodyAngle)
-    // Draw order inside the character: shadow, weapons behind, the figure, weapons in front.
+    this.poseArm('right', weaponAngle, rightReach, bodyAngle, rightFront)
+    this.poseArm('left', leftAngle, leftReach, bodyAngle, leftFront)
+    // Draw order inside the character: shadow, arms and weapons behind, the figure, arms
+    // and weapons in front. A hand holds its weapon, so the weapon goes over the arm.
     const behind: Phaser.GameObjects.GameObject[] = []
     const front: Phaser.GameObjects.GameObject[] = []
-    ;(rightFront ? front : behind).push(this.weaponImages.right)
-    ;(leftFront ? front : behind).push(this.weaponImages.left)
-    this.root.removeAll(false)
-    this.root.add([this.shadow, ...behind, this.figure, ...front])
+    for (const [h, inFront] of [['right', rightFront], ['left', leftFront]] as const) {
+      ;(inFront ? front : behind).push(this.arms[h].upper, this.arms[h].fore, this.weaponImages[h])
+    }
+    // Only re-stack when the order actually changes: rebuilding a container every frame
+    // makes Phaser drop children from some frames.
+    const order = [this.shadow, ...behind, this.figure, ...front]
+    if (order.some((o, i) => this.root.list[i] !== o)) {
+      this.root.removeAll(false)
+      this.root.add(order)
+    }
+  }
+
+  /**
+   * Bends an arm from its shoulder to its grip: two-bone IK, the elbow kicked out and down
+   * away from the body. Far arms are shaded darker.
+   */
+  private poseArm(hand: Hand, angle: number, reach: number, bodyAngle: number, inFront: boolean) {
+    const { upper, fore } = this.arms[hand]
+    const visible = this.state.kind !== 'roll'
+    upper.setVisible(visible)
+    fore.setVisible(visible)
+    if (!visible) return
+    const side = HANDS[hand].y > 0 ? 1 : -1
+    const width = SHOULDER_WIDTH[this.loadout.appearance] ?? 16
+    const sx = -Math.sin(this.torsoAngle) * width * side
+    const sy = Math.cos(this.torsoAngle) * width * side * HAND_DEPTH - SHOULDER_HEIGHT + this.bob
+    const hand2 = this.toScreen(this.grip(hand, angle, reach, bodyAngle))
+    const dx = hand2.x - sx
+    const dy = hand2.y - sy
+    const d = Math.min(Math.hypot(dx, dy), UPPER_ARM + FOREARM - 0.5)
+    const toHand = Math.atan2(dy, dx)
+    const bend = Math.acos(Math.max(-1, Math.min(1, (UPPER_ARM * UPPER_ARM + d * d - FOREARM * FOREARM) / (2 * UPPER_ARM * d || 1))))
+    // Of the two elbow positions, take the one further out from the body and lower down.
+    const elbowAt = (sign: number) => ({ x: sx + Math.cos(toHand + sign * bend) * UPPER_ARM, y: sy + Math.sin(toHand + sign * bend) * UPPER_ARM })
+    const a = elbowAt(1)
+    const b = elbowAt(-1)
+    const outward = (e: Vec) => Math.sign(sx || side) * e.x + e.y * 0.6
+    const elbow = outward(a) >= outward(b) ? a : b
+    const place = (img: Phaser.GameObjects.Image, from: Vec, to: Vec, length: number) => {
+      const r = Math.atan2(to.y - from.y, to.x - from.x)
+      img.setPosition(from.x, from.y).setRotation(r).setFlipY(Math.cos(r) < 0).setScale(Math.max(0.6, Math.hypot(to.x - from.x, to.y - from.y) / length), 1)
+    }
+    place(upper, { x: sx, y: sy }, elbow, UPPER_ARM)
+    place(fore, elbow, hand2, FOREARM)
+    for (const img of [upper, fore]) {
+      if (this.hurt > 0.1) img.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL)
+      else img.setTint(inFront ? 0xffffff : 0x9a9a9a).setTintMode(Phaser.TintModes.MULTIPLY)
+    }
+  }
+
+  /** How far the torso is turned (radians) into or through a swing. */
+  private torsoTwist() {
+    const quarter = Math.PI / 4
+    if (this.state.kind === 'heavyHold' || this.state.kind === 'charging') return quarter
+    if (this.state.kind !== 'swing') return 0
+    const s = this.state
+    const { windup, active, recovery } = s.attack
+    const turn = (s.hand === 'right' ? 1 : -1) * s.side * quarter
+    if (s.t < windup) return turn * easeOut(s.t / windup)
+    if (s.t < windup + active) return lerp(turn, -turn, easeOut((s.t - windup) / active))
+    const k = Math.min(1, (s.t - windup - active) / Math.max(0.01, recovery))
+    return -turn * (1 - k * k * (3 - 2 * k))
   }
 
   /**
@@ -816,8 +894,13 @@ export class Player implements Caster {
   private animate(dt: number) {
     const view = facing8(this.facing)
     const look = this.loadout.appearance
-    for (const p of PARTS) this.parts[p].setTexture(characterTextureKey(look, view.art, p))
+    for (const p of PARTS) this.parts[p].setFrame(characterTextureKey(look, view.art, p))
     this.figure.scaleX = view.flip ? -1 : 1
+    // The torso turns with the swing: the next drawn direction round, mirrored if needed.
+    const torso = facing8(this.facing + this.torsoTwist())
+    this.torsoAngle = torso.angle
+    this.parts.body.setFrame(characterTextureKey(look, torso.art, 'body'))
+    const torsoMirror = torso.flip !== view.flip ? -1 : 1
 
     const speed = Math.hypot(this.vx, this.vy)
     const moving = speed > 20 && this.state.kind !== 'roll'
@@ -839,7 +922,7 @@ export class Player implements Caster {
     const bob = moving ? -Math.abs(Math.sin(this.walkCycle)) * 2.5 : 0
     const breathe = moving ? 1 : 1 + Math.sin(t * 2.4) * 0.012
     const body = this.parts.body
-    body.setOrigin(FEET.x / 96, FEET.y / 128).setPosition(0, MID + bob).setScale(1, breathe)
+    body.setOrigin(FEET.x / 96, FEET.y / 128).setPosition(0, MID + bob).setScale(torsoMirror, breathe)
     const back = this.parts.back
     back.setOrigin(FEET.x / 96, CAPE_Y / 128).setPosition(0, CAPE_Y - FEET.y + MID + bob)
     back.setRotation(Math.sin(t * 1.7) * 0.015 + (moving ? Math.sin(this.walkCycle * 0.5) * 0.03 + 0.04 * Math.min(1, speed / 300) : 0))
@@ -1044,5 +1127,3 @@ const LOCK_HOLD = 0.35
 const CHARGE_TIME = 0.5
 
 export const weaponTextureKey = (id: string) => `weapon:${id}`
-export const characterTextureKey = (look: string, direction: string, part: string) => `char:${look}:${direction}:${part}`
-export const CHARACTER_PARTS = PARTS

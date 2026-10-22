@@ -18,9 +18,6 @@
     <pattern id="mail" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#3d4145"/><circle cx="1.5" cy="1.5" r="0.9" fill="#80858a"/></pattern>
   </defs>
   <g stroke="#16181a" stroke-width="1.2" stroke-linejoin="round">
-    <path d="M62 52 L70 52 L70 70 L63 72 Z" fill="#3a3e42"/>
-    <path d="M63 71 L73 71 L73 79 C70 81.5 66 81.5 63 79 Z" fill="#3a3e42"/>
-    <path d="M64.5 75 L71.5 75" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
     <path d="M36 44 C27 58 21 86 18 115 L25 112 L30 116 L36 112 L44 112 L46 60 Z" fill="url(#capeG)"/>
     <path d="M33 52 C27 70 24 92 23 110" stroke="#3a0b0c" stroke-width="1.2" stroke-opacity="1" fill="none"/>
   </g>
