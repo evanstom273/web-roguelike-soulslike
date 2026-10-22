@@ -9,10 +9,11 @@ import { generateFloor } from './dungeon/generateFloor.ts'
 import { hexToPixel } from './dungeon/hex.ts'
 import { Enemy } from './enemies/Enemy.ts'
 import type { HudStore } from './hudStore.ts'
+import type { MapStore } from './mapStore.ts'
 import type { ActionButton, InputState } from './input.ts'
 import type { Loadout } from './player/character.ts'
 import { preloadCharacter } from './player/characterArt.ts'
-import { Player, weaponTextureKey } from './player/Player.ts'
+import { Player, weaponTextureKey, type PlayerStatus } from './player/Player.ts'
 import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
 import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
 import { buildFloorGeometry, CELL_SIZE, type Vec } from './world/floorGeometry.ts'
@@ -27,6 +28,7 @@ export interface RunSceneData {
   loadout: Loadout
   input: InputState
   hud: HudStore
+  map: MapStore
   /** Sandbox runs (nothing is saved) keep training dummies in the start room. */
   sandbox: boolean
   /** Runes carried and seconds into the run so far: a run carries on across floors. */
@@ -39,6 +41,12 @@ export interface RunSceneData {
 export interface RunProgress {
   runes: number
   shards: number
+  runTime: number
+}
+
+export interface RunStatus extends PlayerStatus {
+  runes: number
+  shards: number // found this run
   runTime: number
 }
 
@@ -158,6 +166,7 @@ export class RunScene extends Phaser.Scene {
     // The way down, in the middle of the boss room (until bosses guard it).
     this.exit = geometry.rooms[floor.bossRoom].centre
     this.add.image(this.exit.x, this.exit.y, DESCENT_TEXTURE).setDepth(LAYER.floorProp)
+    this.run.map.setFloor(floor, geometry, this.exit)
 
     const cam = this.cameras.main
     this.playerAnchor.x = geometry.spawn.x
@@ -190,6 +199,11 @@ export class RunScene extends Phaser.Scene {
       this.floatText(e, `+1 ${SHARD_NAME}`, '#9fd3e0', 26)
     }
     this.run.events.onProgress(this.progress())
+  }
+
+  /** Everything the status screen shows that only the scene knows. */
+  status(): RunStatus {
+    return { ...this.player.status(), runes: this.runes, shards: this.shards, runTime: this.runTime }
   }
 
   private progress(): RunProgress {
@@ -308,6 +322,7 @@ export class RunScene extends Phaser.Scene {
     }
     this.playerAnchor.x = this.player.x
     this.playerAnchor.y = this.player.y
+    this.run.map.track(this.player, this.player.facing)
     this.env.follow(this.player)
     this.env.update(_time)
     this.drawReticle(_time)

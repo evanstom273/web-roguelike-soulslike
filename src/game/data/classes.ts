@@ -1,8 +1,8 @@
 import type { AttributeLevels } from './attributes.ts'
 
 // Starting classes: attribute spread (65 points each) and starting kit. Every class
-// starts with two weapons and a catalyst; catalysts bring Magic Bolt with them.
-// Starting spells aren't decided yet.
+// starts with two weapons and a catalyst (which brings Magic Bolt with it) and its own
+// spells. More weapons and spells are bought on the post-death screen.
 
 export interface ClassDef {
   id: string
@@ -32,7 +32,7 @@ export const CLASSES: ClassDef[] = [
     weaponIds: ['greatsword', 'shield', 'seal'],
     right: 'greatsword',
     left: 'shield',
-    spellIds: [],
+    spellIds: ['magic-weapon', 'healing-aura'],
   },
   {
     // Staff: middling damage, the most spell charges.
@@ -42,7 +42,7 @@ export const CLASSES: ClassDef[] = [
     weaponIds: ['katana', 'dagger', 'staff'],
     right: 'katana',
     left: 'dagger',
-    spellIds: [],
+    spellIds: ['magic-dash', 'orbiting-shards'],
   },
   {
     // Wand: INT *** scaling, overtakes the seal from about INT 16 and keeps pulling away.
@@ -52,6 +52,6 @@ export const CLASSES: ClassDef[] = [
     weaponIds: ['straight-sword', 'dagger', 'wand'],
     right: 'straight-sword',
     left: 'wand',
-    spellIds: [],
+    spellIds: ['magic-shard', 'magic-wave', 'chain-lightning', 'magic-rain'],
   },
 ]
