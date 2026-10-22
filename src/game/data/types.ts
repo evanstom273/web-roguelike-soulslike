@@ -146,7 +146,11 @@ export interface WeaponDef {
   category: WeaponCategory
   weight: number
   requirements: Requirements
-  art: SvgArt & { grip: { x: number; y: number } } // grip = the point held in the hand
+  /**
+   * grip = the point held in the hand. rest = idle angle from facing in degrees, positive
+   * outward (mirrored in the left hand); defaults to the hand's own resting angle.
+   */
+  art: SvgArt & { grip: { x: number; y: number }; rest?: number }
   light: AttackDef
   heavy: AttackDef
   /** Hold heavy past `heavy.chargeThreshold` to charge this. */

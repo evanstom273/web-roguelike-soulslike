@@ -48,7 +48,6 @@ const HANDS: Record<Hand, { x: number; y: number; rest: number }> = {
   right: { x: 21.75, y: 17.25, rest: 0.5 },
   left: { x: 18.75, y: -17.25, rest: -0.5 },
 }
-const REST_ANGLE = HANDS.right.rest
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const degToRad = (d: number) => (d * Math.PI) / 180
@@ -743,11 +742,11 @@ export class Player implements Caster {
       else this.weaponImages[h].clearTint()
     }
 
-    let weaponAngle = REST_ANGLE
-    let leftAngle = HANDS.left.rest
+    let weaponAngle = this.restAngle('right')
+    let leftAngle = this.restAngle('left')
     if (this.state.kind === 'heavyHold' || this.state.kind === 'charging') {
       const pull = this.state.kind === 'charging' ? 1 : Math.min(1, this.state.t / this.weapon.heavy.chargeThreshold)
-      weaponAngle = REST_ANGLE + pull * 1.9
+      weaponAngle = this.restAngle('right') + pull * 1.9
       if (this.state.kind === 'charging') this.drawChargeGlow()
     } else if (this.state.kind === 'swing') {
       if (this.state.hand === 'right') weaponAngle = this.swingAngle(this.state)
@@ -755,7 +754,8 @@ export class Player implements Caster {
       this.drawSwingArc(this.state)
     } else if (this.state.kind === 'cast' || this.state.kind === 'channel') {
       const t = this.state.kind === 'cast' ? Math.min(1, this.state.t / Math.max(0.01, this.state.spell.cast.windup)) : 1
-      const raised = lerp(HANDS[this.castHand].rest, HANDS[this.castHand].rest * -0.3, t)
+      const rest = this.restAngle(this.castHand)
+      const raised = lerp(rest, rest * -0.3, t)
       if (this.castHand === 'right') weaponAngle = raised
       else leftAngle = raised
       if (this.state.kind === 'cast' && !this.state.released) this.drawCastGlow(t, this.state.spell.colour)
@@ -764,12 +764,19 @@ export class Player implements Caster {
     this.weaponImages.left.setRotation(leftAngle)
   }
 
+  /** Idle weapon angle from facing: the weapon's own, or the hand's default. */
+  private restAngle(hand: Hand) {
+    const deg = this.held(hand)?.art.rest
+    if (deg === undefined) return HANDS[hand].rest
+    return hand === 'right' ? degToRad(deg) : -degToRad(deg)
+  }
+
   private swingAngle(s: Extract<State, { kind: 'swing' }>) {
     const half = degToRad(s.attack.arc) / 2
     const start = s.side * half
     const end = -s.side * half
     const { windup, active } = s.attack
-    if (s.t < windup) return lerp(HANDS[s.hand].rest, start, easeOut(s.t / windup))
+    if (s.t < windup) return lerp(this.restAngle(s.hand), start, easeOut(s.t / windup))
     if (s.t < windup + active) return lerp(start, end, easeOut((s.t - windup) / active))
     return end
   }
@@ -808,7 +815,7 @@ export class Player implements Caster {
   private drawChargeGlow() {
     const c = this.charge
     const art = this.weapon.art
-    const tip = this.weaponTip(REST_ANGLE + 1.9, art.width - art.grip.x - 6)
+    const tip = this.weaponTip(this.restAngle('right') + 1.9, art.width - art.grip.x - 6)
     this.fx.fillStyle(0xff3d8b, 0.15 + 0.25 * c)
     this.fx.fillCircle(tip.x, tip.y, 6 + 12 * c)
     this.fx.lineStyle(2, 0xff3d8b, 0.3 + 0.5 * c)
@@ -818,7 +825,7 @@ export class Player implements Caster {
   private drawCastGlow(progress: number, colour: string) {
     const hand = this.castHand
     const art = (this.held(hand) ?? this.weapon).art
-    const tip = this.weaponTip(HANDS[hand].rest * -0.3, art.width - art.grip.x, hand)
+    const tip = this.weaponTip(this.restAngle(hand) * -0.3, art.width - art.grip.x, hand)
     this.fx.fillStyle(parseInt(colour.slice(1), 16), 0.2 + 0.4 * progress)
     this.fx.fillCircle(tip.x, tip.y, 4 + 10 * progress)
   }
