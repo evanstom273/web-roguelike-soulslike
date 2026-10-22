@@ -8,15 +8,15 @@ interface MenuItem {
   tag?: string
 }
 
-// Start Run and Settings are placeholders until the game exists.
+// Settings is a placeholder for now.
 const ITEMS: MenuItem[] = [
-  { id: 'start', label: 'Start Run', enabled: false },
+  { id: 'start', label: 'Start Run', enabled: true },
   { id: 'settings', label: 'Settings', enabled: false },
   { id: 'floor-debug', label: 'Floor Gen', enabled: true, tag: 'Debug' },
 ]
 
-export function MainMenu({ onOpenFloorDebug }: { onOpenFloorDebug: () => void }) {
-  const actions: Record<string, (() => void) | undefined> = { 'floor-debug': onOpenFloorDebug }
+export function MainMenu({ onStartRun, onOpenFloorDebug }: { onStartRun: () => void; onOpenFloorDebug: () => void }) {
+  const actions: Record<string, (() => void) | undefined> = { start: onStartRun, 'floor-debug': onOpenFloorDebug }
   const [selected, setSelected] = useState(0)
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
 

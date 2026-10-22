@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Placeholder player, strict overhead view, facing +x (right). Not final character art. -->
+  <defs>
+    <radialGradient id="shadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#000" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8d9bb0"/>
+      <stop offset="0.45" stop-color="#5b677a"/>
+      <stop offset="1" stop-color="#2c3442"/>
+    </linearGradient>
+    <linearGradient id="pauldronTop" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a9b6c8"/>
+      <stop offset="0.5" stop-color="#6b7889"/>
+      <stop offset="1" stop-color="#363f4d"/>
+    </linearGradient>
+    <linearGradient id="pauldronBottom" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#7f8ca0"/>
+      <stop offset="0.5" stop-color="#4f5a6a"/>
+      <stop offset="1" stop-color="#262d38"/>
+    </linearGradient>
+    <linearGradient id="pack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3d4656"/>
+      <stop offset="1" stop-color="#1a1f28"/>
+    </linearGradient>
+    <radialGradient id="helmet" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#c3cedc"/>
+      <stop offset="0.45" stop-color="#7c899b"/>
+      <stop offset="1" stop-color="#2f3744"/>
+    </radialGradient>
+    <linearGradient id="visor" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1b6f80"/>
+      <stop offset="1" stop-color="#7ff4ff"/>
+    </linearGradient>
+    <linearGradient id="sleeve" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2a313d"/>
+      <stop offset="1" stop-color="#4a5466"/>
+    </linearGradient>
+  </defs>
+
+  <ellipse id="contact-shadow" cx="33" cy="33.5" rx="24" ry="24" fill="url(#shadow)"/>
+
+  <!-- Life-support pack on the back -->
+  <g id="pack">
+    <rect x="12" y="21" width="12" height="22" rx="4" fill="url(#pack)" stroke="#0e1218" stroke-width="1"/>
+    <rect x="14" y="24" width="3" height="16" rx="1.5" fill="#121820"/>
+    <rect x="19" y="24" width="3" height="16" rx="1.5" fill="#121820"/>
+    <rect x="14.6" y="30" width="1.8" height="4" rx="0.9" fill="#38e8ff" opacity="0.8"/>
+  </g>
+
+  <!-- Arms reaching forward: left arm (top), right arm (bottom, weapon hand) -->
+  <g id="arm-left">
+    <path d="M30 17 Q38 14 44 20" stroke="url(#sleeve)" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <circle cx="44.5" cy="20.5" r="4" fill="#3b4453" stroke="#151a22" stroke-width="1"/>
+  </g>
+  <g id="arm-right">
+    <path d="M30 47 Q39 50 46 44" stroke="url(#sleeve)" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <circle cx="46.5" cy="43.5" r="4" fill="#3b4453" stroke="#151a22" stroke-width="1"/>
+  </g>
+
+  <!-- Torso / back plate between the shoulders -->
+  <path id="torso" d="M22 18 Q34 13 38 22 L38 42 Q34 51 22 46 Q18 32 22 18Z" fill="url(#plate)" stroke="#141922" stroke-width="1.2"/>
+  <path d="M23 26 Q30 25 33 27 M23 38 Q30 39 33 37" stroke="#232a35" stroke-width="1" fill="none" opacity="0.8"/>
+
+  <!-- Pauldrons -->
+  <g id="pauldron-left">
+    <path d="M20 13 Q31 7 38 15 Q36 22 27 22 Q20 21 20 13Z" fill="url(#pauldronTop)" stroke="#141922" stroke-width="1.2"/>
+    <path d="M23 13.5 Q30 10 35 14.5" stroke="#d5deea" stroke-width="1" fill="none" opacity="0.55"/>
+  </g>
+  <g id="pauldron-right">
+    <path d="M20 51 Q31 57 38 49 Q36 42 27 42 Q20 43 20 51Z" fill="url(#pauldronBottom)" stroke="#141922" stroke-width="1.2"/>
+    <path d="M23 50.5 Q30 54 35 49.5" stroke="#9aa7b9" stroke-width="1" fill="none" opacity="0.4"/>
+  </g>
+
+  <!-- Helmet, seen from above, with the visor facing forward -->
+  <g id="helmet">
+    <circle cx="32" cy="32" r="10.5" fill="url(#helmet)" stroke="#141922" stroke-width="1.2"/>
+    <path d="M24 32 Q32 30.5 40 32" stroke="#232a35" stroke-width="1.4" fill="none" opacity="0.7"/>
+    <path d="M38.2 25.5 Q43.4 32 38.2 38.5" stroke="url(#visor)" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+    <path d="M27 25.5 Q30 23.5 34 24" stroke="#eef3fa" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.7"/>
+  </g>
+</svg>
