@@ -164,6 +164,25 @@ export function hurt(facing, t, stance) {
   }
 }
 
+/** Killed: the knees go, the arms drop, and the body tips back to lie on the floor. */
+export function death(facing, t, stance) {
+  const k = smooth(Math.min(1, t / 0.45))
+  const fall = Math.min(1, Math.max(0, (t - 0.2) / 0.8)) ** 2
+  const p = base(facing, stance)
+  return {
+    ...p,
+    bob: -k * 10,
+    lean: -deg(18) * k,
+    headTurn: deg(12) * k,
+    hands: { r: lerpV(p.hands.r, V(-3, 24, 30), k), l: lerpV(p.hands.l, V(-3, -24, 30), k) },
+    blade: lerpV(p.blade, V(0.2, 0.7, -0.7), k),
+    bladeL: lerpV(p.bladeL, V(0.2, -0.7, -0.7), k),
+    feet: { r: V(5 * k, 9, 0), l: V(-2, -8, 0) },
+    cape: { flare: 0.1 },
+    tumble: { angle: -deg(88) * fall, tuck: 0 },
+  }
+}
+
 // What gets rendered: each animation's frame times (0..1).
 const ATTACK = [0, 0.1, 0.2, 0.3, 0.36, 0.42, 0.48, 0.54, 0.6, 0.72, 0.86, 1]
 export const ANIMATIONS = {
@@ -177,4 +196,5 @@ export const ANIMATIONS = {
   lcast: { times: [0, 0.2, 0.4, 0.6, 0.8, 1], pose: (f, t, s) => cast(f, t, 'l', s) },
   roll: { times: [0, 1, 2, 3, 4, 5, 6, 7].map((i) => i / 8), pose: (f, t, s) => roll(f, t, s) },
   hurt: { times: [0.5, 1], pose: (f, t, s) => hurt(f, t * 0.5, s) },
+  death: { times: [0, 0.2, 0.4, 0.6, 0.8, 1], pose: (f, t, s) => death(f, t, s) },
 }

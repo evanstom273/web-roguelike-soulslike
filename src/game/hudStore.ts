@@ -14,7 +14,9 @@ export interface HudState {
   maxHp: number
   stamina: number
   maxStamina: number
-  runes: number
+  runes: number // carried this run
+  shards: number // smithing shards found this run
+  atExit: boolean // standing on the way down
   charge: number // 0..1 while charging a heavy attack
   weaponId: string
   leftWeaponId: string | null
@@ -38,6 +40,8 @@ export class HudStore {
     stamina: 0,
     maxStamina: 1,
     runes: 0,
+    shards: 0,
+    atExit: false,
     charge: 0,
     weaponId: '',
     leftWeaponId: null,

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 210" width="280" height="210">
+  <!-- The way down: a stairwell cut into the floor, seen from above in three-quarter view.
+       The far (north) wall of the shaft drops away below its rim; the steps run down
+       towards it into the dark, lit faintly from below. Centre of the opening at (140, 105). -->
+  <defs>
+    <radialGradient id="dc-halo" cx="50%" cy="52%" r="50%"><stop offset="0.55" stop-color="#000" stop-opacity="0.45"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="dc-wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5d574d"/><stop offset="0.55" stop-color="#2a2620"/><stop offset="1" stop-color="#0b0a08"/></linearGradient>
+    <linearGradient id="dc-steps" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7c7466"/><stop offset="0.7" stop-color="#2d2822"/><stop offset="1" stop-color="#100e0b"/></linearGradient>
+    <radialGradient id="dc-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#e0893a" stop-opacity="0.8"/><stop offset="0.5" stop-color="#9c4a1c" stop-opacity="0.35"/><stop offset="1" stop-color="#5a2410" stop-opacity="0"/></radialGradient>
+    <linearGradient id="dc-rimTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a39a89"/><stop offset="1" stop-color="#857c6c"/></linearGradient>
+    <linearGradient id="dc-rimFace" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f584c"/><stop offset="1" stop-color="#3a352d"/></linearGradient>
+    <clipPath id="dc-hole"><rect x="46" y="38" width="188" height="136"/></clipPath>
+  </defs>
+
+  <ellipse cx="140" cy="108" rx="140" ry="104" fill="url(#dc-halo)"/>
+
+  <!-- The shaft -->
+  <g clip-path="url(#dc-hole)">
+    <rect x="46" y="38" width="188" height="136" fill="#0b0a08"/>
+    <!-- North wall dropping away: courses of blocks, darker the deeper they go -->
+    <rect x="46" y="38" width="188" height="104" fill="url(#dc-wall)"/>
+    <g stroke="#14120e" stroke-width="1.4" fill="none" opacity="0.8">
+      <path d="M46 56 H234 M46 76 H234 M46 98 H234 M46 122 H234"/>
+      <path d="M78 38 V56 M126 38 V56 M172 38 V56 M214 38 V56 M58 56 V76 M104 56 V76 M150 56 V76 M196 56 V76 M84 76 V98 M132 76 V98 M180 76 V98 M222 76 V98 M64 98 V122 M112 98 V122 M160 98 V122 M206 98 V122"/>
+    </g>
+    <g fill="#8a8170" opacity="0.35"><rect x="47" y="39" width="186" height="2"/><rect x="47" y="57" width="186" height="1.5"/><rect x="47" y="77" width="186" height="1.2"/></g>
+    <!-- Glow from somewhere below -->
+    <ellipse cx="140" cy="112" rx="96" ry="40" fill="url(#dc-glow)"/>
+    <!-- Steps running down to the north: only a sliver of each lower tread shows -->
+    <g>
+      <rect x="62" y="104" width="156" height="70" fill="url(#dc-steps)"/>
+      <g fill="#1b1814" opacity="0.85">
+        <rect x="62" y="110" width="156" height="2.2"/>
+        <rect x="62" y="118" width="156" height="2.2"/>
+        <rect x="62" y="127" width="156" height="2.2"/>
+        <rect x="62" y="137" width="156" height="2.2"/>
+        <rect x="62" y="148" width="156" height="2.2"/>
+        <rect x="62" y="160" width="156" height="2.2"/>
+      </g>
+      <g fill="#b3a993" opacity="0.5">
+        <rect x="62" y="112.2" width="156" height="1"/>
+        <rect x="62" y="120.2" width="156" height="1"/>
+        <rect x="62" y="129.2" width="156" height="1.1"/>
+        <rect x="62" y="139.2" width="156" height="1.2"/>
+        <rect x="62" y="150.2" width="156" height="1.3"/>
+        <rect x="62" y="162.2" width="156" height="1.4"/>
+      </g>
+      <!-- Side walls of the stair cut, in shadow -->
+      <path d="M46 104 L62 104 L62 174 L46 174 Z" fill="#1d1a16"/>
+      <path d="M218 104 L234 104 L234 174 L218 174 Z" fill="#13110e"/>
+    </g>
+  </g>
+
+  <!-- Rim: dressed stone kerb round the opening; the near kerb's face shows, the rest is top -->
+  <g stroke="#141618" stroke-width="2" stroke-linejoin="round">
+    <path d="M30 24 H250 V188 H30 Z M46 38 V174 H234 V38 Z" fill="url(#dc-rimTop)" fill-rule="evenodd"/>
+    <path d="M30 188 H250 V198 H30 Z" fill="url(#dc-rimFace)"/>
+  </g>
+  <g stroke="#141618" stroke-width="1.1" opacity="0.7">
+    <path d="M30 24 L46 38 M250 24 L234 38 M30 188 L46 174 M250 188 L234 174"/>
+    <path d="M86 24 V38 M140 24 V38 M194 24 V38 M86 174 V188 M140 174 V188 M194 174 V188 M30 80 H46 M30 132 H46 M234 80 H250 M234 132 H250"/>
+    <path d="M86 188 V198 M140 188 V198 M194 188 V198"/>
+  </g>
+  <g fill="#c9c0ac" opacity="0.55">
+    <rect x="32" y="25.5" width="216" height="1.6"/>
+    <rect x="31.5" y="26" width="1.4" height="160"/>
+  </g>
+  <g fill="#2b2720" opacity="0.4">
+    <rect x="47" y="171" width="186" height="3"/>
+  </g>
+</svg>

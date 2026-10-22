@@ -28,6 +28,19 @@ export class InputState {
     return this.touchHeld.has(button)
   }
 
+  // The on-screen "descend" button: a one-off request, taken by the game scene.
+  private descend = false
+
+  requestDescend() {
+    this.descend = true
+  }
+
+  takeDescend() {
+    const d = this.descend
+    this.descend = false
+    return d
+  }
+
   // Presses since the last frame; cleared once read.
   takeTouchPresses(): Set<ActionButton> {
     const pressed = this.touchPressed

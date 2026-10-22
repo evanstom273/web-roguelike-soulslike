@@ -402,7 +402,61 @@ export interface MovementDef {
   lockOnRadius: number
 }
 
+// ---------------------------------------------------------------------------
+// Enemies
+
+/** How an enemy notices and keeps track of you. Distances in px. */
+export interface PerceptionDef {
+  sight: number // sees you within this range, with nothing in the way
+  memory: number // seconds it keeps chasing where it last saw you
+  search: number // seconds it then looks around before going home
+}
+
+/**
+ * One thing an enemy can do: a melee attack, or casting one of the spells. Chosen when
+ * the player is between `minRange` and `maxRange` and it's off cooldown; the highest
+ * priority wins.
+ */
+export interface EnemyMove {
+  id: string
+  /** Which drawn animation plays: windup, strike and recovery are mapped onto it. */
+  anim: 'slash' | 'backslash' | 'heavy' | 'cast'
+  attack?: AttackDef // melee
+  spell?: string // or a spell id: its delivery, damage and timing
+  minRange: number
+  maxRange: number
+  /** Seconds after the move ends before it can be used again. */
+  cooldown: number
+  /** Keeps turning to face you for this fraction of the windup, then commits. */
+  trackWindup: number
+  priority: number
+}
+
+export interface EnemyDef {
+  id: string
+  name: string
+  description?: string
+  /** Its drawn frames: a folder in art/characters (rendered by tools/rig). */
+  look: string
+  /** Weapon drawn in its right hand. Only a look: its attacks are its moves. */
+  weapon: string | null
+  vitals: VitalsDef
+  radius: number // collision circle, px
+  speed: number // walking, px/s
+  /** Ranged enemies hold about this far away and back off if you close in; 0 = close in. */
+  preferredDistance: number
+  /** How fast it's knocked back when staggered, px/s at a knockback of 180. */
+  staggerRecoil: number
+  perception: PerceptionDef
+  moves: EnemyMove[]
+  /** Runes for killing it, before run-time and floor scaling. */
+  runes: number
+  /** Chance (0..1) of dropping a smithing shard; Arcane raises it. */
+  shardChance: number
+}
+
 // Identity helpers: they only exist so content files get full type checking.
 export const defineWeapon = (def: WeaponDef): WeaponDef => def
 export const defineSpell = (def: SpellDef): SpellDef => def
 export const defineStatus = (def: StatusDef): StatusDef => def
+export const defineEnemy = (def: EnemyDef): EnemyDef => def

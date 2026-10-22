@@ -1,7 +1,7 @@
 import { CLASSES } from './classes.ts'
-import type { SpellDef, StatusDef, WeaponDef } from './types.ts'
+import type { EnemyDef, SpellDef, StatusDef, WeaponDef } from './types.ts'
 
-// Collects every definition file in data/weapons, data/spells and data/statuses.
+// Collects every definition file in data/weapons, data/spells, data/statuses and data/enemies.
 // Adding content means adding a file; there's no list to update.
 
 function collect<T extends { id: string }>(kind: string, modules: Record<string, { default: T }>): Map<string, T> {
@@ -18,6 +18,7 @@ function collect<T extends { id: string }>(kind: string, modules: Record<string,
 export const WEAPONS = collect<WeaponDef>('weapon', import.meta.glob('./weapons/*.ts', { eager: true }))
 export const SPELLS = collect<SpellDef>('spell', import.meta.glob('./spells/*.ts', { eager: true }))
 export const STATUSES = collect<StatusDef>('status', import.meta.glob('./statuses/*.ts', { eager: true }))
+export const ENEMIES = collect<EnemyDef>('enemy', import.meta.glob('./enemies/*.ts', { eager: true }))
 
 // Cross-references can't be checked by the type system, so check them on load:
 // every status any attack inflicts, and every catalyst's basic spell.
@@ -37,6 +38,15 @@ for (const w of WEAPONS.values()) {
 }
 for (const s of SPELLS.values()) checkStatuses(`Spell "${s.id}"`, s)
 for (const s of STATUSES.values()) checkStatuses(`Status "${s.id}"`, s)
+for (const e of ENEMIES.values()) {
+  checkStatuses(`Enemy "${e.id}"`, e)
+  if (e.weapon && !WEAPONS.has(e.weapon)) throw new Error(`Enemy "${e.id}" holds unknown weapon "${e.weapon}"`)
+  if (e.moves.length === 0) throw new Error(`Enemy "${e.id}" has no moves`)
+  for (const m of e.moves) {
+    if (!m.attack === !m.spell) throw new Error(`Enemy "${e.id}" move "${m.id}" needs exactly one of attack or spell`)
+    if (m.spell && !SPELLS.has(m.spell)) throw new Error(`Enemy "${e.id}" move "${m.id}" casts unknown spell "${m.spell}"`)
+  }
+}
 for (const c of CLASSES) {
   for (const id of c.weaponIds) if (!WEAPONS.has(id)) throw new Error(`Class "${c.id}" starts with unknown weapon "${id}"`)
   for (const id of c.spellIds) if (!SPELLS.has(id)) throw new Error(`Class "${c.id}" starts with unknown spell "${id}"`)
@@ -54,3 +64,4 @@ function getter<T>(kind: string, map: Map<string, T>) {
 export const getWeapon = getter('weapon', WEAPONS)
 export const getSpell = getter('spell', SPELLS)
 export const getStatus = getter('status', STATUSES)
+export const getEnemy = getter('enemy', ENEMIES)

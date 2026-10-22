@@ -1,4 +1,5 @@
 import type * as Phaser from 'phaser'
+import type { WeaponDef } from '../data/types.ts'
 
 // The playable characters are drawn frame by frame (tools/rig poses a 3D model for every
 // frame and renders it cel-shaded): one sheet per class holding every animation in all
@@ -8,7 +9,7 @@ import type * as Phaser from 'phaser'
 const SHEETS = import.meta.glob('../art/characters/*/sheet.png', { eager: true, query: '?no-inline', import: 'default' }) as Record<string, string>
 const DATA = import.meta.glob('../art/characters/*/frames.json', { eager: true, import: 'default' }) as Record<string, FramesFile>
 
-export type CharacterAnim = 'idle' | 'walk' | 'slash' | 'backslash' | 'lslash' | 'heavy' | 'cast' | 'lcast' | 'roll' | 'hurt'
+export type CharacterAnim = 'idle' | 'walk' | 'slash' | 'backslash' | 'lslash' | 'heavy' | 'cast' | 'lcast' | 'roll' | 'hurt' | 'death'
 
 /** A hand in one frame. */
 export interface HandPose {
@@ -38,6 +39,25 @@ interface FramesFile {
 }
 
 export const characterTexture = (look: string) => `character:${look}`
+
+/**
+ * Puts a held weapon's image in a drawn hand (relative to the feet), its blade along `dir`;
+ * d is the drawn direction. Returns whether it should draw in front of the body.
+ */
+export function holdWeapon(img: Phaser.GameObjects.Image, w: WeaponDef, h: HandPose, dir: Vec3, d: number): boolean {
+  img.setPosition(h.x, h.y)
+  if (w.art.upright) {
+    // Shields stay upright, facing the way the body does: narrow side-on.
+    img.setRotation(0).setScale(Math.max(0.4, Math.abs(Math.sin((d * Math.PI) / 4))), 1).setFlipY(false)
+    return h.depth > 0
+  }
+  // Blades turn and foreshorten with the drawn arm. Pointing left they're flipped so the
+  // edge and the baked light stay the right way up.
+  const { angle, scale } = onScreen(dir)
+  img.setRotation(angle).setScale(Math.max(0.25, scale), 1).setFlipY(Math.cos(angle) < 0)
+  // In front of the body when the hand, or enough of the blade, is on the camera's side of it.
+  return h.depth + dir.y * (w.art.width - w.art.grip.x) * 0.3 > 0
+}
 
 export function preloadCharacter(scene: Phaser.Scene, look: string) {
   scene.load.image(characterTexture(look), SHEETS[`../art/characters/${look}/sheet.png`])

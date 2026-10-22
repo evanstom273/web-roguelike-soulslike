@@ -1,9 +1,13 @@
 import * as Phaser from 'phaser'
+import descentUrl from './art/props/descent.svg?no-inline'
 import dummyUrl from './art/props/training-dummy.svg?no-inline'
 import { CombatWorld, type LandedHit } from './combat/CombatWorld.ts'
 import { SpellSystem } from './combat/SpellSystem.ts'
-import { getStatus } from './data/registry.ts'
+import { enemiesPerSlot, threat } from './data/difficulty.ts'
+import { ENEMIES, getStatus, getWeapon } from './data/registry.ts'
 import { generateFloor } from './dungeon/generateFloor.ts'
+import { hexToPixel } from './dungeon/hex.ts'
+import { Enemy } from './enemies/Enemy.ts'
 import type { HudStore } from './hudStore.ts'
 import type { ActionButton, InputState } from './input.ts'
 import type { Loadout } from './player/character.ts'
@@ -11,8 +15,10 @@ import { preloadCharacter } from './player/characterArt.ts'
 import { Player, weaponTextureKey } from './player/Player.ts'
 import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
 import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
-import { buildFloorGeometry, type Vec } from './world/floorGeometry.ts'
+import { buildFloorGeometry, CELL_SIZE, type Vec } from './world/floorGeometry.ts'
 import { LAYER } from './world/projection.ts'
+import { SHARD_NAME } from './data/progression.ts'
+import { createRng, pick } from './random.ts'
 import { DUMMY_TEXTURE, TrainingDummy } from './world/TrainingDummy.ts'
 
 export interface RunSceneData {
@@ -21,6 +27,28 @@ export interface RunSceneData {
   loadout: Loadout
   input: InputState
   hud: HudStore
+  /** Sandbox runs (nothing is saved) keep training dummies in the start room. */
+  sandbox: boolean
+  /** Runes carried and seconds into the run so far: a run carries on across floors. */
+  runes: number
+  runTime: number
+  events: RunEvents
+}
+
+/** Where a run stands: runes carried, shards found this run, seconds in. */
+export interface RunProgress {
+  runes: number
+  shards: number
+  runTime: number
+}
+
+export interface RunEvents {
+  /** Something worth saving changed (a kill). */
+  onProgress(p: RunProgress): void
+  /** The player died. Fires once. */
+  onDied(p: RunProgress): void
+  /** The player took the way down. */
+  onDescend(p: RunProgress): void
 }
 
 // Slow motion for looking at animation closely: add ?timescale=0.2 to the URL.
@@ -29,12 +57,25 @@ const TIME_SCALE = Math.max(0.05, Math.min(1, Number(new URLSearchParams(locatio
 // How much of the world fits on the shorter screen side, in world px.
 const VIEW_SHORT_SIDE = 750
 
+const AUTOSAVE_EVERY = 10 // seconds of run time
+
+const DESCENT_TEXTURE = 'descent'
+// Standing within this of the stairwell's middle offers the way down.
+const DESCENT_REACH = 95
+
 export class RunScene extends Phaser.Scene {
   private run!: RunSceneData
   private player!: Player
   private world!: CombatWorld
   private spells!: SpellSystem
   private dummies: TrainingDummy[] = []
+  private enemies: Enemy[] = []
+  private runes = 0
+  private shards = 0
+  private runTime = 0
+  private exit: Vec = { x: 0, y: 0 }
+  private atExit = false
+  private deathReported = false
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private mousePressed = new Set<ActionButton>()
   private hitStop = 0
@@ -51,14 +92,26 @@ export class RunScene extends Phaser.Scene {
   init(data: RunSceneData) {
     this.run = data
     this.biome = biomeForFloor(data.floor)
+    this.runes = data.runes
+    this.runTime = data.runTime
+    this.shards = 0
+    this.enemies = []
+    this.dummies = []
+    this.deathReported = false
   }
 
   preload() {
     // Rasterised at native size: 1 SVG unit = 1 world pixel.
     preloadCharacter(this, this.run.loadout.appearance)
     this.load.svg(DUMMY_TEXTURE, dummyUrl, { width: 96, height: 128 })
+    this.load.svg(DESCENT_TEXTURE, descentUrl, { width: 280, height: 210 })
     preloadEnvironment(this, this.biome)
-    for (const w of this.run.loadout.weapons) {
+    const weapons = new Map(this.run.loadout.weapons.map((w) => [w.id, w]))
+    for (const e of ENEMIES.values()) {
+      preloadCharacter(this, e.look)
+      if (e.weapon && !weapons.has(e.weapon)) weapons.set(e.weapon, getWeapon(e.weapon))
+    }
+    for (const w of weapons.values()) {
       this.load.svg(weaponTextureKey(w.id), w.art.url, { width: w.art.width, height: w.art.height })
     }
   }
@@ -74,10 +127,37 @@ export class RunScene extends Phaser.Scene {
     this.player = new Player(this, geometry.spawn, geometry.walls, this.run.loadout, this.world, this.spells, getStatus)
 
     this.reticle = this.add.graphics().setDepth(LAYER.reticle)
+    // Dev builds only: the scene on window, for poking at from the console or a test.
+    if (import.meta.env.DEV) Object.assign(window, { runScene: this })
 
-    // Training dummies in the start room, for trying weapons, spells and lock-on.
-    this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 220, y: geometry.spawn.y }, getStatus))
-    this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 120, y: geometry.spawn.y + 230 }, getStatus))
+    // Sandbox: training dummies in the start room, for trying weapons, spells and lock-on.
+    if (this.run.sandbox) {
+      this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 220, y: geometry.spawn.y }, getStatus))
+      this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 120, y: geometry.spawn.y + 230 }, getStatus))
+    }
+
+    // Enemies in every room but the start and the boss room, tougher the deeper you are
+    // and the longer the run has gone on.
+    const rng = createRng(`${this.run.seed}:enemies`)
+    const roster = [...ENEMIES.values()]
+    const scale = threat(this.run.floor, this.runTime)
+    for (const r of geometry.rooms) {
+      if (r.room.kind !== 'normal') continue
+      for (const slot of r.room.slots) {
+        const c = hexToPixel(slot, CELL_SIZE)
+        for (let i = 0; i < enemiesPerSlot; i++) {
+          const a = rng() * Math.PI * 2
+          const d = rng() * CELL_SIZE * 0.35
+          const e = new Enemy(this, pick(rng, roster), { x: c.x + Math.cos(a) * d, y: c.y + Math.sin(a) * d }, scale, this.world, this.spells, geometry.walls, this.player, getStatus)
+          e.onKilled = (dead) => this.reward(dead)
+          this.enemies.push(e)
+        }
+      }
+    }
+
+    // The way down, in the middle of the boss room (until bosses guard it).
+    this.exit = geometry.rooms[floor.bossRoom].centre
+    this.add.image(this.exit.x, this.exit.y, DESCENT_TEXTURE).setDepth(LAYER.floorProp)
 
     const cam = this.cameras.main
     this.playerAnchor.x = geometry.spawn.x
@@ -87,7 +167,7 @@ export class RunScene extends Phaser.Scene {
     this.scale.on('resize', this.fitCamera, this)
 
     const kb = this.input.keyboard!
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,F,Q,E,R,U,TAB') as Record<string, Phaser.Input.Keyboard.Key>
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,F,Q,E,R,U,TAB,ENTER') as Record<string, Phaser.Input.Keyboard.Key>
     this.input.mouse?.disableContextMenu()
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.wasTouch) return // touch has its own on-screen buttons
@@ -100,7 +180,32 @@ export class RunScene extends Phaser.Scene {
     this.cameras.main.setZoom(Phaser.Math.Clamp(Math.min(width, height) / VIEW_SHORT_SIDE, 0.45, 1.05))
   }
 
+  /** Runes for a kill (more the longer the run has gone on), and maybe a smithing shard. */
+  private reward(e: Enemy) {
+    const runes = Math.round(e.def.runes * threat(this.run.floor, this.runTime).runes)
+    this.runes += runes
+    this.floatText(e, `+${runes}`, '#e6c879', 0)
+    if (Math.random() < e.def.shardChance * this.run.loadout.stats.lootLuck) {
+      this.shards += 1
+      this.floatText(e, `+1 ${SHARD_NAME}`, '#9fd3e0', 26)
+    }
+    this.run.events.onProgress(this.progress())
+  }
+
+  private progress(): RunProgress {
+    return { runes: this.runes, shards: this.shards, runTime: this.runTime }
+  }
+
+  private floatText(at: Vec, text: string, colour: string, lift: number) {
+    const t = this.add
+      .text(at.x, at.y - 150 - lift, text, { fontFamily: 'Cinzel, serif', fontSize: '18px', color: colour, stroke: '#0a0907', strokeThickness: 4 })
+      .setOrigin(0.5)
+      .setDepth(LAYER.text)
+    this.tweens.add({ targets: t, y: t.y - 40, alpha: 0, delay: 500, duration: 1100, ease: 'Cubic.Out', onComplete: () => t.destroy() })
+  }
+
   private onHit(hit: LandedHit) {
+    if (hit.target.team === 'enemy' || hit.target === this.player.self) this.player.enterCombat()
     this.damageNumber(hit.target, hit.outcome.damage, hit.payload.periodic ?? false)
     if (hit.recurring || hit.payload.periodic) return
     const a = hit.payload.attack
@@ -178,6 +283,28 @@ export class RunScene extends Phaser.Scene {
       this.player.update(dt, intent)
       this.spells.update(dt)
       for (const d of this.dummies) d.update(dt)
+      for (const e of this.enemies) e.update(dt)
+      this.enemies = this.enemies.filter((e) => !e.removed)
+      if (!this.player.dead) {
+        this.runTime += dt
+        // Save where the run stands every so often, so quitting doesn't lose the clock.
+        if (Math.floor(this.runTime / AUTOSAVE_EVERY) !== Math.floor((this.runTime - dt) / AUTOSAVE_EVERY)) this.run.events.onProgress(this.progress())
+      }
+    }
+    const p = this.player
+
+    // Dying ends the run; the game view takes it from here.
+    if (p.dead && !this.deathReported) {
+      this.deathReported = true
+      this.run.events.onDied(this.progress())
+    }
+    // The way down: stand on the stairwell and press Enter or the on-screen button.
+    this.atExit = !p.dead && Math.hypot(p.x - this.exit.x, p.y - this.exit.y) < DESCENT_REACH
+    if (input.takeDescend() || JustDown(k.ENTER)) {
+      if (this.atExit) {
+        this.run.events.onDescend(this.progress())
+        this.atExit = false
+      }
     }
     this.playerAnchor.x = this.player.x
     this.playerAnchor.y = this.player.y
@@ -185,14 +312,15 @@ export class RunScene extends Phaser.Scene {
     this.env.update(_time)
     this.drawReticle(_time)
 
-    const p = this.player
     const spell = p.selectedSpell
     hud.update({
       hp: p.hp,
       maxHp: p.maxHp,
       stamina: p.stamina,
       maxStamina: p.maxStamina,
-      runes: 0,
+      runes: this.runes,
+      shards: this.shards,
+      atExit: this.atExit,
       charge: p.charge,
       weaponId: p.weapon.id,
       leftWeaponId: p.leftWeapon?.id ?? null,
