@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="164" height="24" viewBox="0 0 164 24">
+  <!-- Twinblade, overhead, front blade pointing +x. Gripped at the middle: pivot at (82, 12). -->
+  <defs>
+    <linearGradient id="tb-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3e7ea"/><stop offset="1" stop-color="#a5abb1"/></linearGradient>
+    <linearGradient id="tb-bot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#787e84"/><stop offset="1" stop-color="#454a4f"/></linearGradient>
+    <linearGradient id="tb-iron" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9a9fa4"/><stop offset="1" stop-color="#34373b"/></linearGradient>
+  </defs>
+  <g stroke="#141618" stroke-width="1.1" stroke-linejoin="round">
+    <!-- Front blade: straight, then a hooked tip. -->
+    <path d="M97 8 L146 8.6 C152 8.8 157 10 162 12 L148 15.6 L97 16 Z" fill="url(#tb-bot)"/>
+    <path d="M97 8 L146 8.6 C152 8.8 157 10 162 12 L97 12 Z" fill="url(#tb-top)" stroke="none"/>
+    <path d="M97 8 L146 8.6 C152 8.8 157 10 162 12 L148 15.6 L97 16 Z" fill="none"/>
+    <path d="M99 10 L142 10.4" stroke="#ffffff" stroke-opacity="0.7" stroke-width="0.6" fill="none"/>
+    <path d="M99 12 L150 12" stroke="#2c3034" stroke-width="0.8" fill="none"/>
+    <!-- Back blade: mirrored, so the spin reads the same either way round. -->
+    <path d="M67 8 L18 8.6 C12 8.8 7 10 2 12 L16 15.6 L67 16 Z" fill="url(#tb-bot)"/>
+    <path d="M67 8 L18 8.6 C12 8.8 7 10 2 12 L67 12 Z" fill="url(#tb-top)" stroke="none"/>
+    <path d="M67 8 L18 8.6 C12 8.8 7 10 2 12 L16 15.6 L67 16 Z" fill="none"/>
+    <path d="M65 10 L22 10.4" stroke="#ffffff" stroke-opacity="0.55" stroke-width="0.6" fill="none"/>
+    <path d="M65 12 L14 12" stroke="#2c3034" stroke-width="0.8" fill="none"/>
+    <!-- Long wrapped grip between two small guards. -->
+    <rect x="70" y="9" width="24" height="6" rx="2" fill="#4a1a16"/>
+    <path d="M73 9 L75 15 M77 9 L79 15 M81 9 L83 15 M85 9 L87 15 M89 9 L91 15" stroke="#260b09" stroke-width="0.8" fill="none"/>
+    <path d="M65 4 L70 5 L70 19 L65 20 C66.5 15 66.5 9 65 4 Z" fill="url(#tb-iron)"/>
+    <path d="M99 4 L94 5 L94 19 L99 20 C97.5 15 97.5 9 99 4 Z" fill="url(#tb-iron)"/>
+    <circle cx="82" cy="12" r="2" fill="#c9a24a" stroke-width="0.7"/>
+  </g>
+</svg>

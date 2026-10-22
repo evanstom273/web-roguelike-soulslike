@@ -12,6 +12,7 @@ update.
 
 Also here:
 
+- `classes.ts`: the starting classes' attribute spreads and starting kit.
 - `attributes.ts`: the six attributes and what they derive (HP, stamina, spell charges, loot luck).
 - `damageTypes.ts`: physical, magic, fire, lightning, holy.
 - `player.ts`: the player's vitals and movement.

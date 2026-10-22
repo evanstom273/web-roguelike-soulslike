@@ -1,3 +1,4 @@
+import { CLASSES } from './classes.ts'
 import type { SpellDef, StatusDef, WeaponDef } from './types.ts'
 
 // Collects every definition file in data/weapons, data/spells and data/statuses.
@@ -36,6 +37,11 @@ for (const w of WEAPONS.values()) {
 }
 for (const s of SPELLS.values()) checkStatuses(`Spell "${s.id}"`, s)
 for (const s of STATUSES.values()) checkStatuses(`Status "${s.id}"`, s)
+for (const c of CLASSES) {
+  for (const id of c.weaponIds) if (!WEAPONS.has(id)) throw new Error(`Class "${c.id}" starts with unknown weapon "${id}"`)
+  for (const id of c.spellIds) if (!SPELLS.has(id)) throw new Error(`Class "${c.id}" starts with unknown spell "${id}"`)
+  for (const id of [c.right, c.left]) if (id && !c.weaponIds.includes(id)) throw new Error(`Class "${c.id}" holds "${id}" without owning it`)
+}
 
 function getter<T>(kind: string, map: Map<string, T>) {
   return (id: string): T => {

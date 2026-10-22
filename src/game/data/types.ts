@@ -127,6 +127,7 @@ export interface SkillDef {
 export type WeaponCategory =
   | 'straight-sword'
   | 'greatsword'
+  | 'twinblade'
   | 'dagger'
   | 'spear'
   | 'axe'
