@@ -8,6 +8,9 @@ import { DIRECTIONS, add, fromOffset, hexKey, rotate60, scale, type Hex } from '
 // exactly one cell: inside a multi-slot room it's filled in as floor, and between
 // two different rooms it's where a narrow hallway can run. So hallways are always
 // one cell long.
+//
+// The boss room is always a big "flower" room, attached last by a single hallway
+// to the furthest point it can reach, so it's always a dead end.
 
 export type RoomShape = 'single' | 'pair' | 'bend' | 'line' | 'triangle' | 'flower'
 export type RoomKind = 'normal' | 'start' | 'boss'
@@ -63,11 +66,17 @@ const SHAPE_WEIGHTS: { item: RoomShape; weight: number }[] = [
   { item: 'single', weight: 45 },
   { item: 'pair', weight: 18 },
   { item: 'triangle', weight: 12 },
-  { item: 'bend', weight: 10 },
-  { item: 'line', weight: 8 },
+  // Bends and lines are 5-hex strips; too many of them makes floors feel stringy.
+  { item: 'bend', weight: 5 },
+  { item: 'line', weight: 2 },
   { item: 'flower', weight: 4 },
 ]
-const MAX_FLOWERS = 1
+const MAX_FLOWERS = 1 // not counting the boss room
+
+// If a layout leaves no room for a flower boss room, it's regenerated (deterministically,
+// from the same seed) up to this many times before settling for a smaller boss room.
+const BOSS_LAYOUT_ATTEMPTS = 10
+const BOSS_FALLBACK_SHAPES: RoomShape[] = ['flower', 'triangle', 'pair', 'single']
 
 function rotations(shape: Hex[]): Hex[][] {
   const out: Hex[][] = []
@@ -80,8 +89,17 @@ function rotations(shape: Hex[]): Hex[][] {
 }
 
 export function generateFloor(seed: string, options: FloorOptions): Floor {
+  for (let attempt = 0; attempt < BOSS_LAYOUT_ATTEMPTS; attempt++) {
+    const floor = buildFloor(seed, attempt === 0 ? seed : `${seed}#${attempt}`, options, ['flower'])
+    if (floor) return floor
+  }
+  return buildFloor(seed, `${seed}#fallback`, options, BOSS_FALLBACK_SHAPES)!
+}
+
+// Returns null if none of `bossShapes` can be placed.
+function buildFloor(seed: string, rngSeed: string, options: FloorOptions, bossShapes: RoomShape[]): Floor | null {
   const { width, height, fill = 0.45, loopChance = 0.25 } = options
-  const rng: Rng = createRng(seed)
+  const rng: Rng = createRng(rngSeed)
 
   const area: Hex[] = []
   const inArea = new Set<string>()
@@ -126,6 +144,18 @@ export function generateFloor(seed: string, options: FloorOptions): Floor {
     linked.add(pairKey(fromRoom, toRoom))
   }
 
+  // Every way a shape could be rotated and positioned on free slots so that it covers `target`.
+  function placementsCovering(shape: RoomShape, target: Hex): Hex[][] {
+    const placements: Hex[][] = []
+    for (const rotated of rotations(SHAPES[shape])) {
+      for (const anchor of rotated) {
+        const placed = rotated.map((s) => add(target, scale({ q: s.q - anchor.q, r: s.r - anchor.r }, 2)))
+        if (placed.every((s) => isSlot(s) && !owner.has(hexKey(s)))) placements.push(placed)
+      }
+    }
+    return placements
+  }
+
   // Grow the floor outwards from a random start slot, one room at a time.
   // Each new room hangs off an existing one, which guarantees everything is reachable.
   placeRoom('single', [pick(rng, slots)])
@@ -140,14 +170,7 @@ export function generateFloor(seed: string, options: FloorOptions): Floor {
     let shape = weightedPick(rng, SHAPE_WEIGHTS)
     if (shape === 'flower' && flowers >= MAX_FLOWERS) shape = 'single'
 
-    // Every way this shape could be rotated and positioned so that it covers `target`.
-    const placements: Hex[][] = []
-    for (const rotated of rotations(SHAPES[shape])) {
-      for (const anchor of rotated) {
-        const placed = rotated.map((s) => add(target, scale({ q: s.q - anchor.q, r: s.r - anchor.r }, 2)))
-        if (placed.every((s) => isSlot(s) && !owner.has(hexKey(s)))) placements.push(placed)
-      }
-    }
+    const placements = placementsCovering(shape, target)
     const chosen = placements.length > 0 ? pick(rng, placements) : [target]
     if (placements.length === 0) shape = 'single'
     if (shape === 'flower') flowers++
@@ -180,7 +203,7 @@ export function generateFloor(seed: string, options: FloorOptions): Floor {
     }
   }
 
-  // Boss room: whichever room is furthest from the start by shortest route.
+  // Shortest-route distance (in hallways) from the start room to every room.
   const adjacency = rooms.map(() => [] as number[])
   for (const h of hallways) {
     adjacency[h.from].push(h.to)
@@ -198,11 +221,42 @@ export function generateFloor(seed: string, options: FloorOptions): Floor {
       }
     }
   }
+
+  // Boss room: the biggest shape that fits, hung off the deepest room it can reach.
+  // It's added after the loops, with exactly one hallway, so it's always a dead end.
   let bossRoom = 0
-  for (const room of rooms) if (depth[room.id] > depth[bossRoom]) bossRoom = room.id
+  let bossDepth = 0
+  for (const shape of bossShapes) {
+    let best: { parent: Room; from: Hex; target: Hex; slots: Hex[] }[] = []
+    let bestDepth = -1
+    for (const room of rooms) {
+      if (depth[room.id] < bestDepth) continue
+      for (const from of room.slots) {
+        for (const d of DIRECTIONS) {
+          const target = add(from, scale(d, 2))
+          if (!isSlot(target) || owner.has(hexKey(target))) continue
+          for (const slots of placementsCovering(shape, target)) {
+            if (depth[room.id] > bestDepth) {
+              bestDepth = depth[room.id]
+              best = []
+            }
+            best.push({ parent: room, from, target, slots })
+          }
+        }
+      }
+    }
+    if (best.length === 0) continue
+    const choice = pick(rng, best)
+    const boss = placeRoom(shape, choice.slots)
+    connect(choice.parent.id, boss.id, choice.from, choice.target, false)
+    bossRoom = boss.id
+    bossDepth = bestDepth + 1
+    break
+  }
+  if (bossRoom === 0) return null
 
   rooms[0].kind = 'start'
-  if (bossRoom !== 0) rooms[bossRoom].kind = 'boss'
+  rooms[bossRoom].kind = 'boss'
 
   return {
     seed,
@@ -213,6 +267,6 @@ export function generateFloor(seed: string, options: FloorOptions): Floor {
     hallways,
     startRoom: 0,
     bossRoom,
-    bossDepth: depth[bossRoom],
+    bossDepth,
   }
 }
