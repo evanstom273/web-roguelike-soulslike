@@ -1,40 +1,40 @@
-// Generated from the Godot version (Ashen Vow): data/weapons/sentinel_greatblade.tres
-// Converted to this game's units; edit freely, this file is now the source.
 import artUrl from '../../art/placeholder-blade.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
-// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+// Placeholder art. Tuned for this game: base damage, swing timing and cooldowns set per
+// weapon so heavier weapons hit harder and slower. Charged heavy keeps reach x1.12.
 export default defineWeapon({
   id: 'greatsword',
   name: 'Greatsword',
   category: 'greatsword',
   weight: 11,
-  requirements: {
-    strength: 10,
-    dexterity: 10,
+  requirements: {},
+  art: {
+    url: artUrl,
+    width: 88,
+    height: 16,
+    grip: {
+      x: 6,
+      y: 8,
+    },
   },
-  art: { url: artUrl, width: 88, height: 16, grip: { x: 6, y: 8 } },
   light: {
     name: 'Sentinel greatblade sweep',
     damage: {
-      physical: 110,
+      physical: 210,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 3,
+      dexterity: 1,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 52,
     stamina: 32,
     knockback: 327.27,
-    windup: 0.2,
-    active: 0.1,
-    recovery: 0.36,
+    windup: 0.258,
+    active: 0.129,
+    recovery: 0.464,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -48,23 +48,20 @@ export default defineWeapon({
   heavy: {
     name: 'Greatblade sundering sweep',
     damage: {
-      physical: 240,
+      physical: 340,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 3,
+      dexterity: 1,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 75,
     stamina: 44,
     knockback: 327.27,
-    windup: 0.38,
-    active: 0.18,
-    recovery: 0.55,
+    windup: 0.428,
+    active: 0.203,
+    recovery: 0.619,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -78,14 +75,11 @@ export default defineWeapon({
   charged: {
     name: 'Greatblade sundering sweep (charged)',
     damage: {
-      physical: 324,
+      physical: 460,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 3,
+      dexterity: 1,
     },
     statuses: [],
     maxHealthDrain: null,
@@ -93,8 +87,8 @@ export default defineWeapon({
     stamina: 55,
     knockback: 327.27,
     windup: 0.06,
-    active: 0.18,
-    recovery: 0.632,
+    active: 0.203,
+    recovery: 0.712,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -106,8 +100,8 @@ export default defineWeapon({
     cameraShake: 3.25,
   },
   cooldown: {
-    light: 0.6,
-    heavy: 1.2,
+    light: 1.1,
+    heavy: 2.0,
   },
   catalyst: null,
   skill: null,

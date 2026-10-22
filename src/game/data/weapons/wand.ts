@@ -1,32 +1,29 @@
-// Generated from the Godot version (Ashen Vow): data/weapons/pilgrim_wand.tres
-// Converted to this game's units; edit freely, this file is now the source.
 import artUrl from '../../art/placeholder-catalyst.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
-// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+// Placeholder art. Casts every spell; its own power and Intelligence scaling decide spell damage.
+// The melee moves below are never used (catalysts only cast).
 export default defineWeapon({
   id: 'wand',
   name: 'Wand',
   category: 'wand',
   weight: 1.2,
-  requirements: {
-    strength: 10,
-    dexterity: 10,
+  requirements: {},
+  art: {
+    url: artUrl,
+    width: 72,
+    height: 14,
+    grip: {
+      x: 6,
+      y: 7,
+    },
   },
-  art: { url: artUrl, width: 72, height: 14, grip: { x: 6, y: 7 } },
   light: {
     name: 'Ashen dagger thrust',
     damage: {
       physical: 110,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 30,
@@ -50,13 +47,7 @@ export default defineWeapon({
     damage: {
       physical: 115,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 25,
@@ -80,13 +71,7 @@ export default defineWeapon({
     damage: {
       physical: 155.25,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 33.75,
@@ -112,6 +97,11 @@ export default defineWeapon({
   catalyst: {
     schools: [],
     basicSpell: 'magic-bolt',
+    extraCharges: 2,
+    power: 0.9,
+    scaling: {
+      intelligence: 3,
+    },
   },
   skill: null,
 })

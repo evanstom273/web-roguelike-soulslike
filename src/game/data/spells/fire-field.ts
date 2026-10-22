@@ -16,12 +16,7 @@ export default defineSpell({
     damage: {
       fire: 30,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        intelligence: 0.035,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 5,
@@ -47,12 +42,7 @@ export default defineSpell({
       damage: {
         fire: 30,
       },
-      scaling: {
-        referenceLevel: 10,
-        per: {
-          intelligence: 0.035,
-        },
-      },
+      scaling: null,
       statuses: [],
       maxHealthDrain: null,
       poiseDamage: 5,

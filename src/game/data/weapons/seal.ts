@@ -1,32 +1,29 @@
-// Generated from the Godot version (Ashen Vow): data/weapons/ashen_seal.tres
-// Converted to this game's units; edit freely, this file is now the source.
 import artUrl from '../../art/placeholder-catalyst.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
-// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+// Placeholder art. Casts every spell; its own power and Intelligence scaling decide spell damage.
+// The melee moves below are never used (catalysts only cast).
 export default defineWeapon({
   id: 'seal',
   name: 'Seal',
   category: 'seal',
   weight: 0.8,
-  requirements: {
-    strength: 10,
-    dexterity: 10,
+  requirements: {},
+  art: {
+    url: artUrl,
+    width: 72,
+    height: 14,
+    grip: {
+      x: 6,
+      y: 7,
+    },
   },
-  art: { url: artUrl, width: 72, height: 14, grip: { x: 6, y: 7 } },
   light: {
     name: 'Court bash',
     damage: {
       physical: 110,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 48,
@@ -50,13 +47,7 @@ export default defineWeapon({
     damage: {
       physical: 110,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 90,
@@ -80,13 +71,7 @@ export default defineWeapon({
     damage: {
       physical: 148.5,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 121.5,
@@ -110,8 +95,13 @@ export default defineWeapon({
     heavy: 1.2,
   },
   catalyst: {
-    schools: ['incantation', 'arcane'],
-    basicSpell: 'holy-spark',
+    schools: [],
+    basicSpell: 'magic-bolt',
+    extraCharges: 1,
+    power: 1.15,
+    scaling: {
+      intelligence: 1,
+    },
   },
   skill: null,
 })

@@ -183,7 +183,7 @@ export class RunScene extends Phaser.Scene {
       weaponId: p.weapon.id,
       leftWeaponId: p.leftWeapon?.id ?? null,
       spellName: spell?.name ?? null,
-      spellCharges: spell ? (spell.basic ? -1 : (p.charges.get(spell.id) ?? 0)) : 0,
+      spellCharges: spell ? (spell.basic ? -1 : p.chargesLeft(spell)) : 0,
       skillCooldown: p.skillCooldown ?? -1,
       inCombat: p.inCombat,
       statuses: [...p.actor.meters.values()].map((m) => ({

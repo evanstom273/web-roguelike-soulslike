@@ -1,31 +1,30 @@
-// Generated from the Godot version (Ashen Vow): data/weapons/ashen_dagger.tres
-// Converted to this game's units; edit freely, this file is now the source.
 import artUrl from '../../art/placeholder-blade.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
-// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+// Placeholder art. Tuned for this game: base damage, swing timing and cooldowns set per
+// weapon so heavier weapons hit harder and slower. Charged heavy keeps reach x1.12.
 export default defineWeapon({
   id: 'dagger',
   name: 'Dagger',
   category: 'dagger',
   weight: 1.5,
-  requirements: {
-    strength: 10,
-    dexterity: 10,
+  requirements: {},
+  art: {
+    url: artUrl,
+    width: 88,
+    height: 16,
+    grip: {
+      x: 6,
+      y: 8,
+    },
   },
-  art: { url: artUrl, width: 88, height: 16, grip: { x: 6, y: 8 } },
   light: {
     name: 'Ashen dagger thrust',
     damage: {
-      physical: 110,
+      physical: 70,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      dexterity: 3,
     },
     statuses: [],
     maxHealthDrain: null,
@@ -48,23 +47,19 @@ export default defineWeapon({
   heavy: {
     name: 'Ashen dagger lunge',
     damage: {
-      physical: 145,
+      physical: 115,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      dexterity: 3,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 28,
     stamina: 24,
     knockback: 327.27,
-    windup: 0.12,
-    active: 0.1,
-    recovery: 0.24,
+    windup: 0.117,
+    active: 0.098,
+    recovery: 0.235,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.3,
@@ -78,14 +73,10 @@ export default defineWeapon({
   charged: {
     name: 'Ashen dagger lunge (charged)',
     damage: {
-      physical: 195.75,
+      physical: 155,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      dexterity: 3,
     },
     statuses: [],
     maxHealthDrain: null,
@@ -93,8 +84,8 @@ export default defineWeapon({
     stamina: 30,
     knockback: 327.27,
     windup: 0.06,
-    active: 0.1,
-    recovery: 0.276,
+    active: 0.098,
+    recovery: 0.27,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.3,
@@ -106,8 +97,8 @@ export default defineWeapon({
     cameraShake: 3.25,
   },
   cooldown: {
-    light: 0.6,
-    heavy: 1.2,
+    light: 0.35,
+    heavy: 0.8,
   },
   catalyst: null,
   skill: null,

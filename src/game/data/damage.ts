@@ -1,18 +1,42 @@
 import type { AttributeLevels } from './attributes.ts'
 import { DAMAGE_TYPE_IDS, type DamageMap } from './damageTypes.ts'
-import type { AttackDef, Defence, MaxHealthDrainDef, Scaling } from './types.ts'
+import type { AttackDef, Defence, MaxHealthDrainDef, Scaling, Stars } from './types.ts'
 
 // The damage formula, ported from the Godot version:
 //   power = sum over types of damage * (1 - defence% / 100)
-//   power *= attribute scaling multiplier * upgrade multiplier
+//   power *= attribute scaling multiplier * other multipliers (catalyst power, chain falloff)
 //   power += unscaled bonus (weapon imbues), after defence
 //   rounded once at the end.
+
+/** Bonus at full investment for each star tier: none, *, **, ***. */
+export const STAR_BONUS: Record<Stars, number> = { 0: 0, 1: 0.4, 2: 1.0, 3: 1.8 }
+
+/**
+ * How much of a star tier's bonus a stat level unlocks, Elden Ring-style: steep to 18,
+ * a soft cap at 60, a harder one at 80, and almost nothing after.
+ */
+const CURVE: [number, number][] = [
+  [1, 0],
+  [18, 0.25],
+  [60, 0.75],
+  [80, 0.9],
+  [99, 1],
+]
+export function scalingCurve(level: number): number {
+  if (level <= CURVE[0][0]) return 0
+  for (let i = 1; i < CURVE.length; i++) {
+    const [x1, y1] = CURVE[i]
+    const [x0, y0] = CURVE[i - 1]
+    if (level <= x1) return y0 + ((level - x0) / (x1 - x0)) * (y1 - y0)
+  }
+  return 1
+}
 
 export function scalingMultiplier(scaling: Scaling | null, levels: AttributeLevels | null): number {
   if (!scaling || !levels) return 1
   let m = 1
-  for (const [attr, per] of Object.entries(scaling.per) as [keyof AttributeLevels, number][]) {
-    m += Math.max(0, levels[attr] - scaling.referenceLevel) * per
+  for (const [attr, stars] of Object.entries(scaling) as [keyof AttributeLevels, Stars][]) {
+    m += STAR_BONUS[stars] * scalingCurve(levels[attr])
   }
   return m
 }

@@ -1,40 +1,39 @@
-// Generated from the Godot version (Ashen Vow): data/weapons/court_shield_bash.tres
-// Converted to this game's units; edit freely, this file is now the source.
 import artUrl from '../../art/placeholder-blade.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
-// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+// Placeholder art. Tuned for this game: base damage, swing timing and cooldowns set per
+// weapon so heavier weapons hit harder and slower. Charged heavy keeps reach x1.12.
 export default defineWeapon({
   id: 'shield',
   name: 'Shield',
   category: 'shield',
   weight: 5,
-  requirements: {
-    strength: 10,
-    dexterity: 10,
+  requirements: {},
+  art: {
+    url: artUrl,
+    width: 88,
+    height: 16,
+    grip: {
+      x: 6,
+      y: 8,
+    },
   },
-  art: { url: artUrl, width: 88, height: 16, grip: { x: 6, y: 8 } },
   light: {
     name: 'Court bash',
     damage: {
-      physical: 110,
+      physical: 90,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 2,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 48,
     stamina: 18,
     knockback: 436.36,
-    windup: 0.1,
-    active: 0.1,
-    recovery: 0.18,
+    windup: 0.105,
+    active: 0.105,
+    recovery: 0.189,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -48,23 +47,19 @@ export default defineWeapon({
   heavy: {
     name: 'Charged court bash',
     damage: {
-      physical: 110,
+      physical: 140,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 2,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 90,
     stamina: 34,
     knockback: 763.64,
-    windup: 0.24,
-    active: 0.14,
-    recovery: 0.34,
+    windup: 0.25,
+    active: 0.146,
+    recovery: 0.354,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -78,14 +73,10 @@ export default defineWeapon({
   charged: {
     name: 'Charged court bash (charged)',
     damage: {
-      physical: 148.5,
+      physical: 190,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 2,
     },
     statuses: [],
     maxHealthDrain: null,
@@ -93,8 +84,8 @@ export default defineWeapon({
     stamina: 42.5,
     knockback: 763.64,
     windup: 0.06,
-    active: 0.14,
-    recovery: 0.391,
+    active: 0.146,
+    recovery: 0.407,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,

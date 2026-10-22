@@ -1,5 +1,6 @@
 import type * as Phaser from 'phaser'
 import { meetsRequirements } from '../data/attributes.ts'
+import { scalingMultiplier } from '../data/damage.ts'
 import type { DamageMap } from '../data/damageTypes.ts'
 import { PLAYER_MOVEMENT as MOVE, PLAYER_VITALS } from '../data/player.ts'
 import type { AttackDef, SpellDef, StatusDef, WeaponDef } from '../data/types.ts'
@@ -64,9 +65,8 @@ export class Player implements Caster {
   rightId: string
   leftId: string | null
   spellIndex = 0
-  /** Remaining uses per attuned spell id (basic spells don't use charges). */
-  readonly charges = new Map<string, number>()
-  readonly maxCharges = new Map<string, number>()
+  /** Casts used per spell id this run (basic spells don't use charges). */
+  private chargesUsed = new Map<string, number>()
 
   private loadout: Loadout
   private world: CombatWorld
@@ -123,12 +123,6 @@ export class Player implements Caster {
     })
     this.actor.onStaminaRestored = (n) => (this.stamina = Math.min(this.maxStamina, this.stamina + n))
     this.self = world.add({ actor: this.actor, team: 'player', x: this.x, y: this.y, radius: RADIUS })
-    for (const s of loadout.spells) {
-      if (s.basic) continue
-      const max = s.charges + loadout.stats.extraSpellCharges
-      this.maxCharges.set(s.id, max)
-      this.charges.set(s.id, max)
-    }
 
     this.trailGfx = scene.add.graphics().setDepth(9)
     this.fx = scene.add.graphics().setDepth(11)
@@ -567,7 +561,7 @@ export class Player implements Caster {
     this.castHand = hand
     if (this.spells.command(spell)) return true // fire orbiting shards that are waiting
     if (!meetsRequirements(this.levels, spell.requirements)) return this.say('Requirements not met'), false
-    if (!spell.basic && (this.charges.get(spell.id) ?? 0) <= 0) return this.say('No charges'), false
+    if (!spell.basic && this.chargesLeft(spell) <= 0) return this.say('No charges'), false
     if (!this.canSpend(spell.cast.stamina)) return this.say('Catch your breath'), false
     const d = spell.delivery
     if ((d.delivery === 'target' || d.delivery === 'chain' || d.delivery === 'tether') && !this.spellTarget(spell)) {
@@ -577,7 +571,7 @@ export class Player implements Caster {
       return this.say('No room to place that'), false
     }
     this.spendStamina(spell.cast.stamina)
-    if (!spell.basic) this.charges.set(spell.id, (this.charges.get(spell.id) ?? 0) - 1)
+    if (!spell.basic) this.chargesUsed.set(spell.id, (this.chargesUsed.get(spell.id) ?? 0) + 1)
     this.state = { kind: 'cast', t: 0, spell, released: false, hand }
     return true
   }
@@ -594,8 +588,27 @@ export class Player implements Caster {
       point: this.placementPoint(spell),
       target: this.spellTarget(spell),
       depth: 0,
-      multiplier: 1,
+      multiplier: this.spellPower(this.castHand),
     })
+  }
+
+  /**
+   * Uses a spell has: its base, plus Intelligence, plus the best charge bonus among the
+   * catalysts in hand. Swapping catalysts changes it straight away.
+   */
+  maxCharges(spell: SpellDef): number {
+    const bonus = Math.max(0, ...(['right', 'left'] as const).map((h) => this.held(h)?.catalyst?.extraCharges ?? 0))
+    return spell.charges + this.loadout.stats.extraSpellCharges + bonus
+  }
+
+  chargesLeft(spell: SpellDef): number {
+    return Math.max(0, this.maxCharges(spell) - (this.chargesUsed.get(spell.id) ?? 0))
+  }
+
+  /** Spell damage multiplier from the casting hand's catalyst: its power times its scaling bonus. */
+  private spellPower(hand: Hand): number {
+    const cat = this.held(hand)?.catalyst
+    return cat ? cat.power * scalingMultiplier(cat.scaling, this.levels) : 1
   }
 
   /** Where placed spells land: ahead of you, stopping short of walls. */
