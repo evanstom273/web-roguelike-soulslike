@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import type { WeaponDef } from '../data/types.ts'
 import type { HudStore } from '../hudStore.ts'
 
 // Elden Ring-style HUD: bars top-left, equipment cross bottom-left, runes bottom-right.
@@ -30,36 +31,48 @@ function Slot({ children, className = '' }: { children?: React.ReactNode; classN
   )
 }
 
-function BladeIcon() {
+// The equipped weapon's own art, laid diagonally across its slot.
+function WeaponIcon({ weapon }: { weapon: WeaponDef }) {
   return (
-    <svg viewBox="0 0 40 40" className="size-8 sm:size-10" aria-label="Right-hand weapon">
-      <path d="M8 32 L12 28" stroke="#3a4250" strokeWidth="4" strokeLinecap="round" />
-      <path d="M9.5 25.5 L14.5 30.5" stroke="#8d97a6" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M12.5 27.5 L33 7 L34 6 L33.5 8 Z" fill="#c9d3e0" stroke="#5f6a7a" strokeWidth="1" strokeLinejoin="round" />
-    </svg>
+    <img
+      src={weapon.art.url}
+      alt={weapon.name}
+      className="max-w-none -rotate-45"
+      style={{ width: '130%', aspectRatio: `${weapon.art.width} / ${weapon.art.height}` }}
+      draggable={false}
+    />
   )
 }
 
-export function Hud({ store, touch }: { store: HudStore; touch: boolean }) {
+export function Hud({ store, touch, weapon }: { store: HudStore; touch: boolean; weapon: WeaponDef }) {
   const s = useSyncExternalStore(store.subscribe, store.getSnapshot)
 
   return (
     <div className="pointer-events-none absolute inset-0 select-none">
       <div className="absolute top-4 left-4 flex flex-col gap-1.5">
         <Bar value={s.hp} max={s.maxHp} colour="linear-gradient(#c43a32, #7c1712)" lag />
-        <Bar value={s.fp} max={s.maxFp} colour="linear-gradient(#3f6fd1, #1d3a86)" />
         <Bar value={s.stamina} max={s.maxStamina} colour="linear-gradient(#4f9a3e, #275a1d)" />
       </div>
 
       {/* Equipment cross: spell (up), left hand, right hand, quick item (down). */}
       <div className={`absolute left-4 grid grid-cols-3 gap-1 ${touch ? 'bottom-4 opacity-80' : 'bottom-5'}`}>
         <span />
-        <Slot />
+        <Slot className="relative">
+          {s.spellName && (
+            <>
+              <span className="text-center text-[0.5rem] leading-tight tracking-wider text-text/80 uppercase">{s.spellName}</span>
+              {/* DS1-style uses left */}
+              <span className="absolute right-0.5 bottom-0 text-xs text-[#e9dfc0] tabular-nums">{s.spellCharges}</span>
+            </>
+          )}
+        </Slot>
         <span />
         <Slot />
         <span />
-        <Slot>
-          <BladeIcon />
+        <Slot className="relative overflow-hidden">
+          <WeaponIcon weapon={weapon} />
+          {/* Skill cooldown: a dark shade that drains as the skill recharges. */}
+          {s.skillCooldown > 0 && <div className="absolute inset-x-0 bottom-0 bg-black/65" style={{ height: `${s.skillCooldown * 100}%` }} />}
         </Slot>
         <span />
         <Slot />

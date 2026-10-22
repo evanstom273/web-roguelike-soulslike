@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import { FloorDebug } from './debug/FloorDebug.tsx'
+import { startingCharacter } from './game/player/character.ts'
 import { randomSeed } from './game/random.ts'
 import { MainMenu } from './menu/MainMenu.tsx'
 
@@ -10,13 +11,15 @@ type Screen = { name: 'menu' } | { name: 'floor-debug' } | { name: 'run'; seed: 
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'menu' })
+  // Not saved yet: persistence arrives with the post-death level-up screen.
+  const [character] = useState(startingCharacter)
   const toMenu = () => setScreen({ name: 'menu' })
 
   if (screen.name === 'floor-debug') return <FloorDebug onBack={toMenu} />
   if (screen.name === 'run') {
     return (
       <Suspense fallback={<div className="flex h-full items-center justify-center text-xs tracking-[0.4em] text-dim uppercase">Loading</div>}>
-        <GameView seed={screen.seed} onQuit={toMenu} />
+        <GameView seed={screen.seed} character={character} onQuit={toMenu} />
       </Suspense>
     )
   }

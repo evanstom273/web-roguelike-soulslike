@@ -1,15 +1,16 @@
 import * as Phaser from 'phaser'
-import bladeUrl from './art/blade.svg?no-inline'
 import playerUrl from './art/player.svg?no-inline'
 import { generateFloor } from './dungeon/generateFloor.ts'
 import type { HudStore } from './hudStore.ts'
 import type { ActionButton, InputState } from './input.ts'
-import { Player } from './player/Player.ts'
-import { PLAYER } from './player/tuning.ts'
+import type { Loadout } from './player/character.ts'
+import { Player, weaponTextureKey } from './player/Player.ts'
 import { buildFloorGeometry, type FloorGeometry, type Vec } from './world/floorGeometry.ts'
+import { Projectiles, spellTextureKey } from './world/projectiles.ts'
 
 export interface RunSceneData {
   seed: string
+  loadout: Loadout
   input: InputState
   hud: HudStore
 }
@@ -20,6 +21,7 @@ const VIEW_SHORT_SIDE = 750
 export class RunScene extends Phaser.Scene {
   private run!: RunSceneData
   private player!: Player
+  private projectiles!: Projectiles
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private mousePressed = new Set<ActionButton>()
 
@@ -34,14 +36,19 @@ export class RunScene extends Phaser.Scene {
   preload() {
     // Rasterised at native size: 1 SVG unit = 1 world pixel.
     this.load.svg('player', playerUrl, { width: 64, height: 64 })
-    this.load.svg('blade', bladeUrl, { width: 88, height: 16 })
+    const { weapon, spells } = this.run.loadout
+    this.load.svg(weaponTextureKey(weapon.id), weapon.art.url, { width: weapon.art.width, height: weapon.art.height })
+    for (const s of spells) {
+      if (s.art) this.load.svg(spellTextureKey(s.id), s.art.url, { width: s.art.width, height: s.art.height })
+    }
   }
 
   create() {
     const floor = generateFloor(this.run.seed, { width: 16, height: 16 })
     const geometry = buildFloorGeometry(floor)
     this.drawFloor(geometry)
-    this.player = new Player(this, geometry.spawn, geometry.walls)
+    this.projectiles = new Projectiles(this, geometry.walls)
+    this.player = new Player(this, geometry.spawn, geometry.walls, this.run.loadout, (e) => this.projectiles.spawn(e))
 
     const cam = this.cameras.main
     cam.setBackgroundColor('#05070d')
@@ -99,19 +106,23 @@ export class RunScene extends Phaser.Scene {
     const rollHeld = k.SPACE.isDown || input.isTouchHeld('roll')
 
     this.player.update(dt, { move: { x: mx, y: my }, pressed, heavyHeld, rollHeld })
+    this.projectiles.update(dt)
     this.playerAnchor.x = this.player.x
     this.playerAnchor.y = this.player.y
 
+    const p = this.player
     hud.update({
-      hp: this.player.hp,
-      maxHp: PLAYER.maxHp,
-      fp: this.player.fp,
-      maxFp: PLAYER.maxFp,
-      stamina: this.player.stamina,
-      maxStamina: PLAYER.maxStamina,
+      hp: p.hp,
+      maxHp: p.maxHp,
+      stamina: p.stamina,
+      maxStamina: p.maxStamina,
       runes: 0,
-      charge: this.player.charge,
-      notice: this.player.notice?.text ?? null,
+      charge: p.charge,
+      spellName: p.selectedSpell?.name ?? null,
+      spellCharges: p.spellCharges[p.spellIndex] ?? 0,
+      spellMaxCharges: p.maxSpellCharges[p.spellIndex] ?? 0,
+      skillCooldown: p.skillCooldown ?? -1,
+      notice: p.notice?.text ?? null,
     })
   }
 

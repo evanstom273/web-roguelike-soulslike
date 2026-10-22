@@ -2,14 +2,16 @@ import * as Phaser from 'phaser'
 import { useEffect, useMemo, useRef } from 'react'
 import { HudStore } from './hudStore.ts'
 import { InputState } from './input.ts'
+import { resolveLoadout, type Character } from './player/character.ts'
 import { RunScene, type RunSceneData } from './RunScene.ts'
 import { Hud } from './ui/Hud.tsx'
 import { TouchControls } from './ui/TouchControls.tsx'
 
 const isTouchDevice = () => window.matchMedia('(pointer: coarse)').matches
 
-export function GameView({ seed, onQuit }: { seed: string; onQuit: () => void }) {
+export function GameView({ seed, character, onQuit }: { seed: string; character: Character; onQuit: () => void }) {
   const host = useRef<HTMLDivElement>(null)
+  const loadout = useMemo(() => resolveLoadout(character), [character])
   const input = useMemo(() => new InputState(), [])
   const hud = useMemo(() => new HudStore(), [])
   const touch = useMemo(() => isTouchDevice(), [])
@@ -22,10 +24,10 @@ export function GameView({ seed, onQuit }: { seed: string; onQuit: () => void })
       scale: { mode: Phaser.Scale.RESIZE },
       banner: false,
     })
-    const data: RunSceneData = { seed, input, hud }
+    const data: RunSceneData = { seed, loadout, input, hud }
     game.scene.add('run', RunScene, true, data)
     return () => game.destroy(true)
-  }, [seed, input, hud])
+  }, [seed, loadout, input, hud])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -38,7 +40,7 @@ export function GameView({ seed, onQuit }: { seed: string; onQuit: () => void })
   return (
     <main className="relative h-full touch-none overflow-hidden bg-void">
       <div ref={host} className="absolute inset-0" />
-      <Hud store={hud} touch={touch} />
+      <Hud store={hud} touch={touch} weapon={loadout.weapon} />
       {touch && <TouchControls input={input} />}
 
       <div className={`absolute right-4 flex items-center gap-3 ${touch ? 'top-14' : 'top-4'}`}>
