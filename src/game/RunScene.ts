@@ -18,8 +18,8 @@ import { createRng, pick, type Rng } from './random.ts'
 import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
 import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
 import { buildFloorGeometry, CELL_SIZE, type RoomGeometry, type Vec } from './world/floorGeometry.ts'
+import { FogWalls } from './world/FogWalls.ts'
 import { LAYER } from './world/projection.ts'
-import { RoomGates } from './world/RoomGates.ts'
 import { DUMMY_TEXTURE, TrainingDummy } from './world/TrainingDummy.ts'
 
 export interface RunSceneData {
@@ -67,8 +67,8 @@ const VIEW_SHORT_SIDE = 750
 
 const AUTOSAVE_EVERY = 10 // seconds of run time
 
-// A room's gates only shut once you're this far in from every doorway, so they never drop
-// on top of you; enemies spawn at least this far from them too.
+// A room's fog walls only rise once you're this far in from every doorway, so they never
+// rise on top of you; enemies spawn at least this far from them too.
 const GATE_CLEARANCE = 110
 const SPAWN_CLEARANCE = 220
 
@@ -76,7 +76,7 @@ const SPAWN_CLEARANCE = 220
 interface Arena {
   room: RoomGeometry
   enemies: Enemy[]
-  gates: RoomGates
+  fog: FogWalls
   state: 'waiting' | 'locked' | 'cleared'
 }
 
@@ -161,7 +161,7 @@ export class RunScene extends Phaser.Scene {
 
     // Enemies in every room but the start and the boss room: more in bigger rooms, kept to
     // their room, tougher the deeper you are and the longer the run has gone on. They wait
-    // until you walk in (or hit one); then the room's gates shut until they're all dead.
+    // until you walk in (or hit one); then fog walls seal the room until they're all dead.
     const rng = createRng(`${this.run.seed}:enemies`)
     const roster = [...ENEMIES.values()]
     const scale = threat(this.run.floor, this.runTime)
@@ -174,7 +174,7 @@ export class RunScene extends Phaser.Scene {
         return e
       })
       this.enemies.push(...enemies)
-      this.arenas.push({ room: r, enemies, gates: new RoomGates(this, r.doors, geometry.walls), state: 'waiting' })
+      this.arenas.push({ room: r, enemies, fog: new FogWalls(this, r.doors, geometry.walls), state: 'waiting' })
     }
 
     // The way down, in the middle of the boss room (until bosses guard it).
@@ -220,14 +220,14 @@ export class RunScene extends Phaser.Scene {
     return out
   }
 
-  /** Shuts a room's gates once you're properly inside it with enemies alive; lifts them when they're dead. */
+  /** Seals a room in fog once you're properly inside it with enemies alive; clears it when they're dead. */
   private updateArenas(dt: number) {
-    for (const a of this.arenas) a.gates.update(dt)
+    for (const a of this.arenas) a.fog.update(dt)
     const locked = this.arenas.find((a) => a.state === 'locked')
     if (locked) {
       if (locked.enemies.every((e) => e.dead)) {
         locked.state = 'cleared'
-        locked.gates.open()
+        locked.fog.open()
       }
       return
     }
@@ -241,9 +241,8 @@ export class RunScene extends Phaser.Scene {
       return
     }
     a.state = 'locked'
-    a.gates.close()
+    a.fog.close()
     for (const e of a.enemies) e.wake()
-    this.cameras.main.shake(140, 0.004)
   }
 
   /** Runes for a kill (more the longer the run has gone on), and maybe a smithing shard. */

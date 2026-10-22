@@ -27,7 +27,7 @@
 - Death normally ends the current run and returns the player to the beginning, unless they purchase an available checkpoint start for their next run.
 - Floor count, dungeon layout algorithm, and final-ending/endless structure are not yet decided.
 - Until bosses are designed, reaching the boss room opens the way down to the next floor, and that counts as finishing the floor for checkpoints.
-- Enemies spawn at random in rooms, more in bigger rooms (from 1 in the smallest to 5 or 6 in the largest). Walking into a room with enemies in it shuts its doors behind you until they're all dead.
+- Enemies spawn at random in rooms, more in bigger rooms (from 1 in the smallest to 5 or 6 in the largest). Walking into a room with enemies in it seals it behind you with fog walls until they're all dead.
 - The post-death screen also sets the loadout for the next run: what each hand starts holding.
 
 ## 4. Enemy difficulty, time and progression
