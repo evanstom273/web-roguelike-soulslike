@@ -1,25 +1,25 @@
 import * as Phaser from 'phaser'
 import descentUrl from './art/props/descent.svg?no-inline'
 import dummyUrl from './art/props/training-dummy.svg?no-inline'
-import { CombatWorld, type LandedHit } from './combat/CombatWorld.ts'
+import { CombatWorld, segmentDistance, type LandedHit } from './combat/CombatWorld.ts'
 import { SpellSystem } from './combat/SpellSystem.ts'
-import { enemiesPerSlot, threat } from './data/difficulty.ts'
+import { enemyCount, threat } from './data/difficulty.ts'
+import { SHARD_NAME } from './data/progression.ts'
 import { ENEMIES, getStatus, getWeapon } from './data/registry.ts'
 import { generateFloor } from './dungeon/generateFloor.ts'
-import { hexToPixel } from './dungeon/hex.ts'
 import { Enemy } from './enemies/Enemy.ts'
 import type { HudStore } from './hudStore.ts'
-import type { MapStore } from './mapStore.ts'
 import type { ActionButton, InputState } from './input.ts'
+import type { MapStore } from './mapStore.ts'
 import type { Loadout } from './player/character.ts'
 import { preloadCharacter } from './player/characterArt.ts'
 import { Player, weaponTextureKey, type PlayerStatus } from './player/Player.ts'
+import { createRng, pick, type Rng } from './random.ts'
 import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
 import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
-import { buildFloorGeometry, CELL_SIZE, type Vec } from './world/floorGeometry.ts'
+import { buildFloorGeometry, CELL_SIZE, type RoomGeometry, type Vec } from './world/floorGeometry.ts'
 import { LAYER } from './world/projection.ts'
-import { SHARD_NAME } from './data/progression.ts'
-import { createRng, pick } from './random.ts'
+import { RoomGates } from './world/RoomGates.ts'
 import { DUMMY_TEXTURE, TrainingDummy } from './world/TrainingDummy.ts'
 
 export interface RunSceneData {
@@ -67,6 +67,19 @@ const VIEW_SHORT_SIDE = 750
 
 const AUTOSAVE_EVERY = 10 // seconds of run time
 
+// A room's gates only shut once you're this far in from every doorway, so they never drop
+// on top of you; enemies spawn at least this far from them too.
+const GATE_CLEARANCE = 110
+const SPAWN_CLEARANCE = 220
+
+/** A room with enemies in it: waiting for you, shut in with you, or cleared. */
+interface Arena {
+  room: RoomGeometry
+  enemies: Enemy[]
+  gates: RoomGates
+  state: 'waiting' | 'locked' | 'cleared'
+}
+
 const DESCENT_TEXTURE = 'descent'
 // Standing within this of the stairwell's middle offers the way down.
 const DESCENT_REACH = 95
@@ -78,6 +91,7 @@ export class RunScene extends Phaser.Scene {
   private spells!: SpellSystem
   private dummies: TrainingDummy[] = []
   private enemies: Enemy[] = []
+  private arenas: Arena[] = []
   private runes = 0
   private shards = 0
   private runTime = 0
@@ -104,6 +118,7 @@ export class RunScene extends Phaser.Scene {
     this.runTime = data.runTime
     this.shards = 0
     this.enemies = []
+    this.arenas = []
     this.dummies = []
     this.deathReported = false
   }
@@ -144,23 +159,22 @@ export class RunScene extends Phaser.Scene {
       this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 120, y: geometry.spawn.y + 230 }, getStatus))
     }
 
-    // Enemies in every room but the start and the boss room, tougher the deeper you are
-    // and the longer the run has gone on.
+    // Enemies in every room but the start and the boss room: more in bigger rooms, kept to
+    // their room, tougher the deeper you are and the longer the run has gone on. They wait
+    // until you walk in (or hit one); then the room's gates shut until they're all dead.
     const rng = createRng(`${this.run.seed}:enemies`)
     const roster = [...ENEMIES.values()]
     const scale = threat(this.run.floor, this.runTime)
     for (const r of geometry.rooms) {
       if (r.room.kind !== 'normal') continue
-      for (const slot of r.room.slots) {
-        const c = hexToPixel(slot, CELL_SIZE)
-        for (let i = 0; i < enemiesPerSlot; i++) {
-          const a = rng() * Math.PI * 2
-          const d = rng() * CELL_SIZE * 0.35
-          const e = new Enemy(this, pick(rng, roster), { x: c.x + Math.cos(a) * d, y: c.y + Math.sin(a) * d }, scale, this.world, this.spells, geometry.walls, this.player, getStatus)
-          e.onKilled = (dead) => this.reward(dead)
-          this.enemies.push(e)
-        }
-      }
+      const enemies = this.spawnPoints(r, enemyCount(r.room.slots.length, rng()), rng).map((at) => {
+        const e = new Enemy(this, pick(rng, roster), at, scale, this.world, this.spells, [...geometry.walls, ...r.doors], this.player, getStatus)
+        e.onKilled = (dead) => this.reward(dead)
+        e.dormant = true
+        return e
+      })
+      this.enemies.push(...enemies)
+      this.arenas.push({ room: r, enemies, gates: new RoomGates(this, r.doors, geometry.walls), state: 'waiting' })
     }
 
     // The way down, in the middle of the boss room (until bosses guard it).
@@ -187,6 +201,49 @@ export class RunScene extends Phaser.Scene {
   private fitCamera() {
     const { width, height } = this.scale.gameSize
     this.cameras.main.setZoom(Phaser.Math.Clamp(Math.min(width, height) / VIEW_SHORT_SIDE, 0.45, 1.05))
+  }
+
+  /** Random spots inside a room for its enemies, clear of the doorways and of each other. */
+  private spawnPoints(r: RoomGeometry, count: number, rng: Rng): Vec[] {
+    const out: Vec[] = []
+    const inradius = (CELL_SIZE * Math.sqrt(3)) / 2
+    for (let tries = 0; out.length < count && tries < count * 40; tries++) {
+      const cell = pick(rng, r.cells)
+      const c = { x: cell.reduce((t, p) => t + p.x, 0) / cell.length, y: cell.reduce((t, p) => t + p.y, 0) / cell.length }
+      const a = rng() * Math.PI * 2
+      const d = Math.sqrt(rng()) * inradius * 0.8
+      const p = { x: c.x + Math.cos(a) * d, y: c.y + Math.sin(a) * d }
+      if (r.doors.some((door) => segmentDistance(p, door.a, door.b) < SPAWN_CLEARANCE)) continue
+      if (out.some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 130)) continue
+      out.push(p)
+    }
+    return out
+  }
+
+  /** Shuts a room's gates once you're properly inside it with enemies alive; lifts them when they're dead. */
+  private updateArenas(dt: number) {
+    for (const a of this.arenas) a.gates.update(dt)
+    const locked = this.arenas.find((a) => a.state === 'locked')
+    if (locked) {
+      if (locked.enemies.every((e) => e.dead)) {
+        locked.state = 'cleared'
+        locked.gates.open()
+      }
+      return
+    }
+    const p = this.player
+    const here = this.run.map.getSnapshot().current
+    const a = this.arenas.find((x) => x.state === 'waiting' && x.room.room.id === here)
+    if (!a || p.dead) return
+    if (a.room.doors.some((d) => segmentDistance(p, d.a, d.b) < GATE_CLEARANCE)) return
+    if (a.enemies.every((e) => e.dead)) {
+      a.state = 'cleared'
+      return
+    }
+    a.state = 'locked'
+    a.gates.close()
+    for (const e of a.enemies) e.wake()
+    this.cameras.main.shake(140, 0.004)
   }
 
   /** Runes for a kill (more the longer the run has gone on), and maybe a smithing shard. */
@@ -299,6 +356,7 @@ export class RunScene extends Phaser.Scene {
       for (const d of this.dummies) d.update(dt)
       for (const e of this.enemies) e.update(dt)
       this.enemies = this.enemies.filter((e) => !e.removed)
+      this.updateArenas(dt)
       if (!this.player.dead) {
         this.runTime += dt
         // Save where the run stands every so often, so quitting doesn't lose the clock.
