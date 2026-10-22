@@ -128,6 +128,7 @@ export type WeaponCategory =
   | 'straight-sword'
   | 'greatsword'
   | 'twinblade'
+  | 'katana'
   | 'dagger'
   | 'spear'
   | 'axe'
