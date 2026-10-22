@@ -1,0 +1,60 @@
+// Generated from the Godot version (Ashen Vow): data/spells/glimmer.tres
+// Converted to this game's units; edit freely, this file is now the source.
+import { defineSpell } from '../types.ts'
+
+export default defineSpell({
+  id: 'magic-bolt',
+  name: 'Magic Bolt',
+  school: 'sorcery',
+  requirements: {},
+  basic: true,
+  charges: 1,
+  healthRestore: 0,
+  staminaRestore: 0,
+  cast: {
+    name: 'Magic Bolt',
+    damage: {
+      magic: 50,
+    },
+    scaling: {
+      referenceLevel: 10,
+      per: {
+        intelligence: 0.025,
+      },
+    },
+    statuses: [],
+    maxHealthDrain: null,
+    poiseDamage: 8,
+    stamina: 8,
+    knockback: 63.64,
+    windup: 0.18,
+    active: 0.08,
+    recovery: 0.24,
+    movementMultiplier: 0.65,
+    uninterruptibleWhileActive: false,
+    chargeThreshold: 0.45,
+    reach: 76.36,
+    hitRadius: 40,
+    arc: 112,
+    lungeSpeed: 0,
+    hitStop: 0,
+    cameraShake: 0.6,
+  },
+  delivery: {
+    delivery: 'projectile',
+    attack: null,
+    effects: [],
+    duration: 1.1,
+    tickInterval: 0.3,
+    castRange: 727.27,
+    placementDistance: 327.27,
+    maxInstances: 1,
+    targetFilter: 'hostile',
+    speed: 836.36,
+    radius: 6.36,
+    homing: false,
+    turnRate: 171.89,
+    pierce: 0,
+  },
+  colour: '#7fb8ff',
+})

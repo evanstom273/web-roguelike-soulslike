@@ -1,0 +1,105 @@
+// Generated from the Godot version (Ashen Vow): data/weapons/sentinel_blade.tres
+// Converted to this game's units; edit freely, this file is now the source.
+import artUrl from '../../art/placeholder-blade.svg?no-inline'
+import { defineWeapon } from '../types.ts'
+
+// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
+// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+export default defineWeapon({
+  id: 'guard-blade',
+  name: 'Guard Blade',
+  category: 'greatsword',
+  weight: 8,
+  requirements: {},
+  art: { url: artUrl, width: 88, height: 16, grip: { x: 6, y: 8 } },
+  light: {
+    name: 'Sentinel sweep',
+    damage: {
+      physical: 145,
+    },
+    scaling: null,
+    statuses: [],
+    maxHealthDrain: null,
+    poiseDamage: 45,
+    stamina: 32,
+    knockback: 327.27,
+    windup: 0.65,
+    active: 0.12,
+    recovery: 0.85,
+    movementMultiplier: 0.15,
+    uninterruptibleWhileActive: true,
+    chargeThreshold: 0.45,
+    reach: 141.82,
+    hitRadius: 45.45,
+    arc: 112,
+    lungeSpeed: 227.27,
+    hitStop: 0.04,
+    cameraShake: 5,
+  },
+  heavy: {
+    name: 'Sentinel heavy cleave',
+    damage: {
+      physical: 235,
+    },
+    scaling: {
+      referenceLevel: 10,
+      per: {
+        strength: 0.025,
+        dexterity: 0.02,
+      },
+    },
+    statuses: [],
+    maxHealthDrain: null,
+    poiseDamage: 65,
+    stamina: 42,
+    knockback: 327.27,
+    windup: 0.4,
+    active: 0.16,
+    recovery: 0.55,
+    movementMultiplier: 0.15,
+    uninterruptibleWhileActive: false,
+    chargeThreshold: 0.45,
+    reach: 141.82,
+    hitRadius: 45.45,
+    arc: 112,
+    lungeSpeed: 0,
+    hitStop: 0.04,
+    cameraShake: 2.5,
+  },
+  charged: {
+    name: 'Sentinel heavy cleave (charged)',
+    damage: {
+      physical: 317.25,
+    },
+    scaling: {
+      referenceLevel: 10,
+      per: {
+        strength: 0.025,
+        dexterity: 0.02,
+      },
+    },
+    statuses: [],
+    maxHealthDrain: null,
+    poiseDamage: 87.75,
+    stamina: 52.5,
+    knockback: 327.27,
+    windup: 0.06,
+    active: 0.16,
+    recovery: 0.632,
+    movementMultiplier: 0.15,
+    uninterruptibleWhileActive: false,
+    chargeThreshold: 0.45,
+    reach: 158.84,
+    hitRadius: 50.9,
+    arc: 112,
+    lungeSpeed: 0,
+    hitStop: 0.04,
+    cameraShake: 3.25,
+  },
+  cooldown: {
+    light: 0.6,
+    heavy: 1.2,
+  },
+  catalyst: null,
+  skill: null,
+})
