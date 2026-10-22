@@ -8,11 +8,9 @@ import type { DamageMap } from './damageTypes.ts'
 // The model and the numbers are ported from the Godot version (Ashen Vow), converted to
 // this game's units: world px, seconds, degrees. See data/README.md.
 
-/** Damage bonus per attribute point above `referenceLevel`, e.g. { strength: 0.025 }. */
-export interface Scaling {
-  referenceLevel: number
-  per: Partial<Record<AttributeId, number>>
-}
+/** Scaling stars per attribute: none, *, ** or ***. See data/damage.ts for what they add. */
+export type Stars = 0 | 1 | 2 | 3
+export type Scaling = Partial<Record<AttributeId, Stars>>
 
 /** Percentage damage negation per damage type; negative values are weaknesses. */
 export type Defence = DamageMap
@@ -154,8 +152,18 @@ export interface WeaponDef {
   charged: AttackDef
   /** Minimum time between starts of the same kind of attack. Charged shares heavy's. */
   cooldown: { light: number; heavy: number }
-  /** Catalysts cast the selected spell from the light button instead of swinging. */
-  catalyst: { schools: SpellSchool[] /* empty = all */; basicSpell: string | null } | null
+  /**
+   * Catalysts cast the selected spell from the light button instead of swinging. Spell
+   * damage is the spell's base damage × `power` × this catalyst's own scaling bonus.
+   */
+  catalyst: {
+    schools: SpellSchool[] // empty = all
+    basicSpell: string | null
+    power: number
+    scaling: Scaling
+    /** Extra charges for every spell while this catalyst is held. */
+    extraCharges: number
+  } | null
   skill: SkillDef | null
 }
 

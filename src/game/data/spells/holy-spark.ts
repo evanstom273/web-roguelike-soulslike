@@ -16,12 +16,7 @@ export default defineSpell({
     damage: {
       holy: 48,
     },
-    scaling: {
-      referenceLevel: 10,
-      per: {
-        intelligence: 0.025,
-      },
-    },
+    scaling: null,
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 8,

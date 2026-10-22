@@ -1,40 +1,40 @@
-// Generated from the Godot version (Ashen Vow): data/weapons/pilgrim_spear.tres
-// Converted to this game's units; edit freely, this file is now the source.
 import artUrl from '../../art/placeholder-blade.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
-// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+// Placeholder art. Tuned for this game: base damage, swing timing and cooldowns set per
+// weapon so heavier weapons hit harder and slower. Charged heavy keeps reach x1.12.
 export default defineWeapon({
   id: 'spear',
   name: 'Spear',
   category: 'spear',
   weight: 4,
-  requirements: {
-    strength: 10,
-    dexterity: 10,
+  requirements: {},
+  art: {
+    url: artUrl,
+    width: 88,
+    height: 16,
+    grip: {
+      x: 6,
+      y: 8,
+    },
   },
-  art: { url: artUrl, width: 88, height: 16, grip: { x: 6, y: 8 } },
   light: {
     name: 'Pilgrim spear thrust',
     damage: {
-      physical: 110,
+      physical: 105,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 1,
+      dexterity: 2,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 30,
     stamina: 20,
     knockback: 327.27,
-    windup: 0.1,
-    active: 0.1,
-    recovery: 0.18,
+    windup: 0.105,
+    active: 0.105,
+    recovery: 0.189,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -48,23 +48,20 @@ export default defineWeapon({
   heavy: {
     name: 'Pilgrim impaling thrust',
     damage: {
-      physical: 195,
+      physical: 175,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 1,
+      dexterity: 2,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 45,
     stamina: 30,
     knockback: 327.27,
-    windup: 0.24,
-    active: 0.14,
-    recovery: 0.35,
+    windup: 0.247,
+    active: 0.144,
+    recovery: 0.36,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -78,14 +75,11 @@ export default defineWeapon({
   charged: {
     name: 'Pilgrim impaling thrust (charged)',
     damage: {
-      physical: 263.25,
+      physical: 235,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 1,
+      dexterity: 2,
     },
     statuses: [],
     maxHealthDrain: null,
@@ -93,8 +87,8 @@ export default defineWeapon({
     stamina: 37.5,
     knockback: 327.27,
     windup: 0.06,
-    active: 0.14,
-    recovery: 0.402,
+    active: 0.144,
+    recovery: 0.414,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,

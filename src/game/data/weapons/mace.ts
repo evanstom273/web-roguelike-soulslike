@@ -1,40 +1,39 @@
-// Generated from the Godot version (Ashen Vow): data/weapons/heavy_iron_mace.tres
-// Converted to this game's units; edit freely, this file is now the source.
 import artUrl from '../../art/placeholder-blade.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Heavy = the Godot charged attack; charged = derived from it
-// (x1.35 damage/poise, x1.25 stamina, x1.12 reach). Cooldowns are this game's.
+// Placeholder art. Tuned for this game: base damage, swing timing and cooldowns set per
+// weapon so heavier weapons hit harder and slower. Charged heavy keeps reach x1.12.
 export default defineWeapon({
   id: 'mace',
   name: 'Mace',
   category: 'hammer',
   weight: 9,
-  requirements: {
-    strength: 10,
-    dexterity: 10,
+  requirements: {},
+  art: {
+    url: artUrl,
+    width: 88,
+    height: 16,
+    grip: {
+      x: 6,
+      y: 8,
+    },
   },
-  art: { url: artUrl, width: 88, height: 16, grip: { x: 6, y: 8 } },
   light: {
     name: 'Iron mace swing',
     damage: {
-      physical: 110,
+      physical: 165,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 3,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 58,
     stamina: 27,
     knockback: 327.27,
-    windup: 0.2,
-    active: 0.1,
-    recovery: 0.3,
+    windup: 0.217,
+    active: 0.108,
+    recovery: 0.325,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -48,23 +47,19 @@ export default defineWeapon({
   heavy: {
     name: 'Iron mace crush',
     damage: {
-      physical: 210,
+      physical: 270,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 3,
     },
     statuses: [],
     maxHealthDrain: null,
     poiseDamage: 85,
     stamina: 40,
     knockback: 327.27,
-    windup: 0.32,
-    active: 0.16,
-    recovery: 0.48,
+    windup: 0.333,
+    active: 0.167,
+    recovery: 0.5,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -78,14 +73,10 @@ export default defineWeapon({
   charged: {
     name: 'Iron mace crush (charged)',
     damage: {
-      physical: 283.5,
+      physical: 365,
     },
     scaling: {
-      referenceLevel: 10,
-      per: {
-        strength: 0.025,
-        dexterity: 0.02,
-      },
+      strength: 3,
     },
     statuses: [],
     maxHealthDrain: null,
@@ -93,8 +84,8 @@ export default defineWeapon({
     stamina: 50,
     knockback: 327.27,
     windup: 0.06,
-    active: 0.16,
-    recovery: 0.552,
+    active: 0.167,
+    recovery: 0.575,
     movementMultiplier: 0.15,
     uninterruptibleWhileActive: false,
     chargeThreshold: 0.45,
@@ -106,8 +97,8 @@ export default defineWeapon({
     cameraShake: 3.25,
   },
   cooldown: {
-    light: 0.6,
-    heavy: 1.2,
+    light: 0.85,
+    heavy: 1.6,
   },
   catalyst: null,
   skill: null,
