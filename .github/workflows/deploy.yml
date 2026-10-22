@@ -25,7 +25,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # --prefer-offline installs from the cached packages when they are all there,
+      # so a slow or degraded npm registry does not block deploys.
+      - run: npm ci --prefer-offline --no-audit --no-fund
         timeout-minutes: 5
       - run: npm run lint
       - run: npm run build
