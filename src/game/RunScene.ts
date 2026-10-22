@@ -7,16 +7,13 @@ import { generateFloor } from './dungeon/generateFloor.ts'
 import type { HudStore } from './hudStore.ts'
 import type { ActionButton, InputState } from './input.ts'
 import type { Loadout } from './player/character.ts'
-import { CHARACTER_PARTS, characterTextureKey, packCharacter } from './player/characterSheet.ts'
+import { preloadCharacter } from './player/characterArt.ts'
 import { Player, weaponTextureKey } from './player/Player.ts'
 import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
 import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
 import { buildFloorGeometry, type Vec } from './world/floorGeometry.ts'
-import { DRAWN, LAYER } from './world/projection.ts'
+import { LAYER } from './world/projection.ts'
 import { DUMMY_TEXTURE, TrainingDummy } from './world/TrainingDummy.ts'
-
-// Each class's art: four layers per drawn direction (the westward ones are mirrored in game).
-const CHARACTER_ART = import.meta.glob('./art/characters/*/*.svg', { eager: true, query: '?no-inline', import: 'default' }) as Record<string, string>
 
 export interface RunSceneData {
   seed: string
@@ -58,14 +55,7 @@ export class RunScene extends Phaser.Scene {
 
   preload() {
     // Rasterised at native size: 1 SVG unit = 1 world pixel.
-    const look = this.run.loadout.appearance
-    for (const d of DRAWN) {
-      for (const part of CHARACTER_PARTS) {
-        this.load.svg(characterTextureKey(look, d, part), CHARACTER_ART[`./art/characters/${look}/${d}-${part}.svg`], { width: 96, height: 128 })
-      }
-    }
-    this.load.svg(characterTextureKey(look, 'arm', 'upper'), CHARACTER_ART[`./art/characters/${look}/arm-upper.svg`], { width: 36, height: 18 })
-    this.load.svg(characterTextureKey(look, 'arm', 'fore'), CHARACTER_ART[`./art/characters/${look}/arm-fore.svg`], { width: 42, height: 18 })
+    preloadCharacter(this, this.run.loadout.appearance)
     this.load.svg(DUMMY_TEXTURE, dummyUrl, { width: 96, height: 128 })
     preloadEnvironment(this, this.biome)
     for (const w of this.run.loadout.weapons) {
@@ -81,7 +71,6 @@ export class RunScene extends Phaser.Scene {
     this.world = new CombatWorld(geometry.walls)
     this.world.onHit = (hit) => this.onHit(hit)
     this.spells = new SpellSystem(this, this.world, getStatus)
-    packCharacter(this, this.run.loadout.appearance)
     this.player = new Player(this, geometry.spawn, geometry.walls, this.run.loadout, this.world, this.spells, getStatus)
 
     this.reticle = this.add.graphics().setDepth(LAYER.reticle)

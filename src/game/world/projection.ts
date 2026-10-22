@@ -29,26 +29,12 @@ export const LAYER = {
   text: 20,
 } as const
 
-/** The eight directions a character can be drawn facing, and which art each uses. */
+/** The eight directions a character is drawn facing, clockwise from east. */
 export type Facing8 = 'e' | 'se' | 's' | 'sw' | 'w' | 'nw' | 'n' | 'ne'
 const FACINGS: Facing8[] = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne']
-/** Drawn facings; the westward ones are their eastern twins mirrored. */
-export const DRAWN = ['s', 'se', 'e', 'ne', 'n'] as const
-export type Drawn = (typeof DRAWN)[number]
-const ART: Record<Facing8, { art: Drawn; flip: boolean }> = {
-  e: { art: 'e', flip: false },
-  se: { art: 'se', flip: false },
-  s: { art: 's', flip: false },
-  sw: { art: 'se', flip: true },
-  w: { art: 'e', flip: true },
-  nw: { art: 'ne', flip: true },
-  n: { art: 'n', flip: false },
-  ne: { art: 'ne', flip: false },
-}
 
 /** The nearest of the eight drawn directions to an angle (0 = east, +pi/2 = south). */
 export function facing8(angle: number) {
-  const i = ((Math.round(angle / (Math.PI / 4)) % 8) + 8) % 8
-  const f = FACINGS[i]
-  return { facing: f, angle: (i * Math.PI) / 4, ...ART[f] }
+  const index = ((Math.round(angle / (Math.PI / 4)) % 8) + 8) % 8
+  return { facing: FACINGS[index], index, angle: (index * Math.PI) / 4 }
 }

@@ -148,8 +148,9 @@ export interface WeaponDef {
   weight: number
   requirements: Requirements
   /**
-   * grip = the point held in the hand. rest = idle angle from facing in degrees, positive
-   * outward (mirrored in the left hand); defaults to the hand's own resting angle.
+   * grip = the point held in the hand. rest = angle from facing in degrees, level with the
+   * ground, that it's held at while idle or walking, positive outward (mirrored in the left
+   * hand); without it the weapon lies the way the drawn hand holds it.
    * upright = shown face-on and kept upright (shields), instead of pointing along its angle.
    */
   art: SvgArt & { grip: { x: number; y: number }; rest?: number; upright?: boolean }

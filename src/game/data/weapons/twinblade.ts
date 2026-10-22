@@ -17,8 +17,8 @@ export default defineWeapon({
       x: 49.2,
       y: 7.2,
     },
-    // Held diagonally across the front so the back blade clears the body.
-    rest: -40,
+    // Held level along the facing at the hand's side, so the back blade clears the body.
+    rest: 0,
   },
   light: {
     name: 'Twinblade whirl',

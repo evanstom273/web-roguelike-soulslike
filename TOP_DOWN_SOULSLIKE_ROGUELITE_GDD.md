@@ -9,7 +9,8 @@
 - Genre: 2D three-quarter-view Soulslike roguelite with procedural environments and repeated runs.
 - Some ideas may carry over from Ashen Vow, but this is intended to be a different game entirely.
 - Web stack: Phaser, React, Vite, TypeScript and Tailwind CSS, with IndexedDB (via Dexie) for save data, following the creator’s usual workflow.
-- Presentation: three-quarter view (oblique): the ground is drawn as seen from above, and characters, walls and props stand up from it. Characters are drawn in eight directions (five drawn, three mirrored). Changed from strict overhead after side-by-side mockups.
+- Presentation: three-quarter view (oblique): the ground is drawn as seen from above, and characters, walls and props stand up from it. Changed from strict overhead after side-by-side mockups.
+- Characters are animated frame by frame in all eight directions: each frame is posed on a 3D model and rendered as cel-shaded SVG (chosen over layered, procedurally moved parts).
 - Detailed layered SVG art, following the complete adapted specification in Part II.
 
 ## 2. Combat direction
@@ -80,7 +81,7 @@ Perspective and Composition
 
 Use a consistent three-quarter (oblique) view throughout the game. Ground surfaces (floors, paths, decals, anything lying flat) are drawn as seen from above, at native scale. Anything standing (characters, walls, columns, props) is drawn upright, its height rising straight up the screen, with its foot on the ground point it occupies.
 
-Characters and other things that turn are drawn facing south, south-east, east, north-east and north; the westward directions mirror their eastern counterparts. Things further down the screen are nearer the camera and draw on top.
+Characters and other things that turn are drawn facing each of the eight directions. Things further down the screen are nearer the camera and draw on top.
 
 Maintain consistent viewing angles, proportions, depth and visual scale across all assets.
 
