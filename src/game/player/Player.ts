@@ -1,12 +1,13 @@
 import * as Phaser from 'phaser'
 import type { ActionButton } from '../input.ts'
 import { resolveWalls, type Segment, type Vec } from '../world/floorGeometry.ts'
-import { CHARGE, CHARGED, HEAVY, LIGHT, PLAYER, ROLL, type SwingTuning } from './tuning.ts'
+import { CHARGE, CHARGED, HEAVY, LIGHT, PLAYER, ROLL, SPRINT, type SwingTuning } from './tuning.ts'
 
 export interface PlayerIntent {
   move: Vec // length 0..1
   pressed: Set<ActionButton>
   heavyHeld: boolean
+  rollHeld: boolean
 }
 
 type SwingKind = 'light' | 'heavy' | 'charged'
@@ -37,6 +38,8 @@ export class Player {
   private lastStaminaSpend = -Infinity
   private time = 0
   private nextSide: 1 | -1 = 1
+  private rollDownAt: number | null = null // when the roll button went down, until it's released
+  private sprinting = false
 
   private root: Phaser.GameObjects.Container
   private body: Phaser.GameObjects.Image
@@ -69,15 +72,28 @@ export class Player {
 
   update(dt: number, intent: PlayerIntent) {
     this.time += dt
-    for (const button of intent.pressed) this.buffered = { button, at: this.time }
+    for (const button of intent.pressed) {
+      if (button === 'roll') this.rollDownAt = this.time
+      else this.buffered = { button, at: this.time }
+    }
+    // Roll fires when a short press is released; a long hold is a sprint instead.
+    const rollHeldFor = this.rollDownAt === null ? 0 : this.time - this.rollDownAt
+    if (this.rollDownAt !== null && !intent.rollHeld) {
+      if (rollHeldFor < SPRINT.holdThreshold) this.buffered = { button: 'roll', at: this.time }
+      this.rollDownAt = null
+    }
     if (this.buffered && this.time - this.buffered.at > PLAYER.inputBuffer) this.buffered = null
 
     const moving = Math.hypot(intent.move.x, intent.move.y) > 0.15
+    this.sprinting =
+      this.state.kind === 'free' && moving && this.rollDownAt !== null && rollHeldFor >= SPRINT.holdThreshold && this.stamina > 0
     const moveDir = Math.atan2(intent.move.y, intent.move.x)
 
     switch (this.state.kind) {
       case 'free': {
-        this.move(intent.move.x * PLAYER.walkSpeed * dt, intent.move.y * PLAYER.walkSpeed * dt)
+        const speed = this.sprinting ? SPRINT.speed : PLAYER.walkSpeed
+        this.move(intent.move.x * speed * dt, intent.move.y * speed * dt)
+        if (this.sprinting) this.spendStamina(SPRINT.stamina * dt)
         if (moving) this.facing = moveDir
         this.takeBufferedAction(moving ? moveDir : this.facing)
         break
@@ -176,7 +192,7 @@ export class Player {
 
   private regenStamina(dt: number) {
     // Like the Souls games, stamina only comes back while you're not rolling or attacking.
-    const busy = this.state.kind === 'roll' || this.state.kind === 'swing' || this.state.kind === 'charging'
+    const busy = this.sprinting || this.state.kind === 'roll' || this.state.kind === 'swing' || this.state.kind === 'charging'
     if (busy || this.time - this.lastStaminaSpend < PLAYER.staminaRegenDelay) return
     this.stamina = Math.min(PLAYER.maxStamina, this.stamina + PLAYER.staminaRegen * dt)
   }
@@ -195,7 +211,7 @@ export class Player {
     const rolling = this.state.kind === 'roll' && this.state.t < ROLL.duration
     this.root.setScale(rolling ? 0.9 : 1)
     this.body.setAlpha(this.invulnerable ? 0.75 : 1)
-    if (rolling) this.trail.push({ x: this.x, y: this.y, facing: this.facing, age: 0 })
+    if (rolling || (this.sprinting && Math.random() < 0.35)) this.trail.push({ x: this.x, y: this.y, facing: this.facing, age: 0 })
     this.trailGfx.clear()
     this.trail = this.trail.filter((g) => (g.age += dt) < 0.22)
     for (const g of this.trail) {

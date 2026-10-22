@@ -12,6 +12,13 @@ export const PLAYER = {
   inputBuffer: 0.25, // how early a press is remembered before the current action can take it
 }
 
+// Like Elden Ring: tap the roll button to roll (on release), hold it to sprint.
+export const SPRINT = {
+  holdThreshold: 0.22, // holding roll longer than this sprints instead of rolling
+  speed: 360,
+  stamina: 24, // per second while sprinting
+}
+
 export const ROLL = {
   stamina: 18,
   duration: 0.42,
