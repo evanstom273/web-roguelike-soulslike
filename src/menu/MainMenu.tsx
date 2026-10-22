@@ -5,15 +5,18 @@ interface MenuItem {
   id: string
   label: string
   enabled: boolean
+  tag?: string
 }
 
-// Nothing behind these yet — they're placeholders until the game exists.
+// Start Run and Settings are placeholders until the game exists.
 const ITEMS: MenuItem[] = [
   { id: 'start', label: 'Start Run', enabled: false },
   { id: 'settings', label: 'Settings', enabled: false },
+  { id: 'floor-debug', label: 'Floor Gen', enabled: true, tag: 'Debug' },
 ]
 
-export function MainMenu() {
+export function MainMenu({ onOpenFloorDebug }: { onOpenFloorDebug: () => void }) {
+  const actions: Record<string, (() => void) | undefined> = { 'floor-debug': onOpenFloorDebug }
   const [selected, setSelected] = useState(0)
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
 
@@ -58,6 +61,7 @@ export function MainMenu() {
                 }}
                 type="button"
                 aria-disabled={!item.enabled}
+                onClick={item.enabled ? actions[item.id] : undefined}
                 onMouseEnter={() => setSelected(i)}
                 onFocus={() => setSelected(i)}
                 className={[
@@ -72,8 +76,10 @@ export function MainMenu() {
                   <span className={active ? 'text-hazard' : 'text-transparent'}>▸</span>
                   {item.label}
                 </span>
-                {!item.enabled && (
-                  <span className="text-[0.6rem] tracking-[0.25em] text-dim">Offline</span>
+                {(item.tag || !item.enabled) && (
+                  <span className={`text-[0.6rem] tracking-[0.25em] ${item.tag ? 'text-hazard/80' : 'text-dim'}`}>
+                    {item.tag ?? 'Offline'}
+                  </span>
                 )}
               </button>
             )
