@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { WEAPONS } from '../data/registry.ts'
+import type { WeaponDef } from '../data/types.ts'
 import type { HudStore } from '../hudStore.ts'
 import type { ActionButton, InputState } from '../input.ts'
 
@@ -41,9 +42,23 @@ function Slot({ children, className = '', onTap, label }: { children?: React.Rea
   )
 }
 
+// A weapon's own art, laid diagonally across its slot.
+function WeaponArt({ weapon }: { weapon: WeaponDef }) {
+  return (
+    <img
+      src={weapon.art.url}
+      alt={weapon.name}
+      className="max-w-none -rotate-45"
+      style={{ width: '130%', aspectRatio: `${weapon.art.width} / ${weapon.art.height}` }}
+      draggable={false}
+    />
+  )
+}
+
 export function Hud({ store, touch, input }: { store: HudStore; touch: boolean; input: InputState }) {
   const s = useSyncExternalStore(store.subscribe, store.getSnapshot)
   const weapon = WEAPONS.get(s.weaponId)
+  const leftWeapon = s.leftWeaponId ? WEAPONS.get(s.leftWeaponId) : undefined
   const tap = (button: ActionButton) => () => {
     input.pressTouch(button)
     input.releaseTouch(button)
@@ -81,18 +96,12 @@ export function Hud({ store, touch, input }: { store: HudStore; touch: boolean; 
           )}
         </Slot>
         <span />
-        <Slot />
+        <Slot className="relative overflow-hidden" onTap={tap('leftWeapon')} label="Next left-hand weapon">
+          {leftWeapon && <WeaponArt weapon={leftWeapon} />}
+        </Slot>
         <span />
         <Slot className="relative overflow-hidden" onTap={tap('weapon')} label="Next weapon">
-          {weapon && (
-            <img
-              src={weapon.art.url}
-              alt={weapon.name}
-              className="max-w-none -rotate-45"
-              style={{ width: '130%', aspectRatio: `${weapon.art.width} / ${weapon.art.height}` }}
-              draggable={false}
-            />
-          )}
+          {weapon && <WeaponArt weapon={weapon} />}
           {/* Skill cooldown: a dark shade that drains as the skill recharges. */}
           {s.skillCooldown > 0 && <div className="absolute inset-x-0 bottom-0 bg-black/65" style={{ height: `${s.skillCooldown * 100}%` }} />}
         </Slot>
@@ -100,11 +109,10 @@ export function Hud({ store, touch, input }: { store: HudStore; touch: boolean; 
         <Slot />
         <span />
       </div>
-      {weapon && (
-        <div className={`absolute left-4 text-[0.6rem] tracking-[0.25em] text-text/70 uppercase ${touch ? 'bottom-[13.5rem]' : 'bottom-[11.5rem]'}`}>
-          {weapon.name}
-        </div>
-      )}
+      <div className={`absolute left-4 flex flex-col text-[0.6rem] tracking-[0.25em] text-text/70 uppercase ${touch ? 'bottom-[13.5rem]' : 'bottom-[14rem]'}`}>
+        <span>R · {weapon?.name ?? 'empty'}</span>
+        <span>L · {leftWeapon?.name ?? 'empty'}</span>
+      </div>
 
       <div
         className={`absolute right-4 flex items-center gap-2 border border-[#b9a77a]/40 bg-black/50 px-3 py-1.5 ${touch ? 'top-4' : 'bottom-5'}`}

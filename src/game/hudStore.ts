@@ -17,6 +17,7 @@ export interface HudState {
   runes: number
   charge: number // 0..1 while charging a heavy attack
   weaponId: string
+  leftWeaponId: string | null
   spellName: string | null // selected spell, if the weapon can cast
   spellCharges: number // -1 = unlimited (basic spell)
   skillCooldown: number // 0..1 of the cooldown remaining; -1 when the weapon has no skill
@@ -39,6 +40,7 @@ export class HudStore {
     runes: 0,
     charge: 0,
     weaponId: '',
+    leftWeaponId: null,
     spellName: null,
     spellCharges: 0,
     skillCooldown: -1,
