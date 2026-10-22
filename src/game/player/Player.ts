@@ -24,6 +24,7 @@ export interface PlayerIntent {
   cycleLeftWeapon: boolean
   cycleSpell: boolean
   lock: boolean
+  lockHeld: boolean
 }
 
 type SwingKind = 'light' | 'heavy' | 'charged' | 'skill'
@@ -96,6 +97,8 @@ export class Player implements Caster {
   lockedTarget: Target | null = null
   /** Targets in the order they were in when lock-on started, for stepping through. */
   private lockCycle: Target[] = []
+  private lockDownAt: number | null = null
+  private lockHoldFired = false
 
   private root: Phaser.GameObjects.Container
   private body: Phaser.GameObjects.Image
@@ -214,30 +217,43 @@ export class Player implements Caster {
     return t ? Math.atan2(t.y - this.y, t.x - this.x) : this.facing
   }
 
-  /** Lock onto the nearest target (favouring what's in front), switch to the next, or release. */
-  private toggleLock() {
-    const range = MOVE.lockOnRadius
-    const candidates = this.world
-      .find('hostile', this.self, this, range)
+  /** Lockable targets: visible and in range, nearest and most in front first. */
+  private lockCandidates(): Target[] {
+    return this.world
+      .find('hostile', this.self, this, MOVE.lockOnRadius)
       .filter((t) => this.world.visible(this, t))
       .map((t) => {
         const d = Math.hypot(t.x - this.x, t.y - this.y)
-        const angle = Math.abs(Math.atan2(Math.sin(Math.atan2(t.y - this.y, t.x - this.x) - this.facing), Math.cos(Math.atan2(t.y - this.y, t.x - this.x) - this.facing)))
+        const a = Math.atan2(t.y - this.y, t.x - this.x)
+        const angle = Math.abs(Math.atan2(Math.sin(a - this.facing), Math.cos(a - this.facing)))
         return { t, score: d * (1 + angle) } // nearer and more in front scores lower
       })
       .sort((a, b) => a.score - b.score)
       .map((c) => c.t)
-    if (!this.lockedTarget) {
-      this.lockCycle = candidates
-      this.lockedTarget = candidates[0] ?? null
-      if (!this.lockedTarget) this.say('No target')
+  }
+
+  /** Hold: lock onto the best target, or let go. */
+  private toggleLock() {
+    if (this.lockedTarget) {
+      this.lockedTarget = null
+      this.lockCycle = []
       return
     }
-    // Step through the order from when the lock started (it doesn't reshuffle as you turn);
-    // the tap after the last one lets go.
+    this.lockCycle = this.lockCandidates()
+    this.lockedTarget = this.lockCycle[0] ?? null
+    if (!this.lockedTarget) this.say('No target')
+  }
+
+  /** Tap: switch to the next target, wrapping round. Never lets go. */
+  private switchLock() {
+    if (!this.lockedTarget) return this.say('Hold to lock on')
+    const candidates = this.lockCandidates()
+    // Keep the order from when the lock started so it doesn't reshuffle as you turn;
+    // drop targets that are gone and add any new ones at the end.
+    this.lockCycle = [...this.lockCycle.filter((t) => candidates.includes(t)), ...candidates.filter((t) => !this.lockCycle.includes(t))]
+    if (!this.lockCycle.includes(this.lockedTarget)) this.lockCycle.unshift(this.lockedTarget)
     const i = this.lockCycle.indexOf(this.lockedTarget)
-    this.lockedTarget = this.lockCycle.slice(i + 1).find((t) => candidates.includes(t)) ?? null
-    if (!this.lockedTarget) this.lockCycle = []
+    this.lockedTarget = this.lockCycle[(i + 1) % this.lockCycle.length]
   }
 
   channelHeld() {
@@ -284,7 +300,21 @@ export class Player implements Caster {
       if (intent.cycleLeftWeapon) this.cycleWeapon('left')
       if (intent.cycleSpell) this.cycleSpell()
     }
-    if (intent.lock) this.toggleLock()
+    // Lock button: hold to lock on / off, tap to switch target.
+    if (intent.lock) {
+      this.lockDownAt = this.time
+      this.lockHoldFired = false
+    }
+    if (this.lockDownAt !== null) {
+      if (!this.lockHoldFired && this.time - this.lockDownAt >= LOCK_HOLD) {
+        this.lockHoldFired = true
+        this.toggleLock()
+      }
+      if (!intent.lockHeld) {
+        if (!this.lockHoldFired) this.switchLock()
+        this.lockDownAt = null
+      }
+    }
     if (this.lockedTarget && (!this.lockedTarget.actor.alive || !this.world.targets.has(this.lockedTarget))) this.lockedTarget = null
 
     for (const button of intent.pressed) {
@@ -780,6 +810,9 @@ export class Player implements Caster {
     this.fx.fillCircle(tip.x, tip.y, 4 + 10 * progress)
   }
 }
+
+/** Holding the lock button this long locks on / off; anything shorter is a tap. */
+const LOCK_HOLD = 0.35
 
 /** How long a fully charged heavy takes once charging starts. */
 const CHARGE_TIME = 0.5

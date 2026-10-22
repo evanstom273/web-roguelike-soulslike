@@ -159,6 +159,7 @@ export class RunScene extends Phaser.Scene {
       cycleLeftWeapon: pressed.has('leftWeapon'),
       cycleSpell: pressed.has('spell'),
       lock: pressed.has('lock'),
+      lockHeld: k.TAB.isDown || (mouse && pointer.middleButtonDown()) || input.isTouchHeld('lock'),
     }
 
     if (dt > 0) {
