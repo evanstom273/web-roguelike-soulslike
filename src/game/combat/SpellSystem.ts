@@ -2,13 +2,13 @@ import type * as Phaser from 'phaser'
 import type { AttributeLevels } from '../data/attributes.ts'
 import type { DamageMap } from '../data/damageTypes.ts'
 import type { AttackDef, SpellDef, SpellDelivery, StatusDef, SummonDef } from '../data/types.ts'
+import { paletteFor, rand, Vfx, type Palette } from '../vfx/Vfx.ts'
 import type { Vec } from '../world/floorGeometry.ts'
 import { Combatant } from './Combatant.ts'
 import { segmentDistance, type CombatWorld, type Target } from './CombatWorld.ts'
 
 // Runs spell deliveries: a port of the Godot version's spell_delivery_runtime. Each
-// live delivery updates, hits through the CombatWorld, and draws placeholder visuals
-// (until spells get real art).
+// live delivery updates, hits through the CombatWorld, and draws itself through Vfx.
 
 export interface Caster {
   self: Target
@@ -36,7 +36,6 @@ export interface CastContext {
 }
 
 const rad = (deg: number) => (deg * Math.PI) / 180
-const colourOf = (hex: string) => parseInt(hex.replace('#', ''), 16)
 const rotateToward = (from: number, to: number, maxStep: number) => {
   const diff = Math.atan2(Math.sin(to - from), Math.cos(to - from))
   return from + Math.max(-maxStep, Math.min(maxStep, diff))
@@ -47,7 +46,7 @@ const CHANNELLED = (d: SpellDelivery) => d.delivery === 'beam' || d.delivery ===
 
 export class SpellSystem {
   private live: Delivery[] = []
-  private gfx: Phaser.GameObjects.Graphics
+  readonly vfx: Vfx
   private world: CombatWorld
   /** Summoned allies, updated alongside deliveries. */
   private allies: Ally[] = []
@@ -56,7 +55,7 @@ export class SpellSystem {
   constructor(scene: Phaser.Scene, world: CombatWorld, getStatus: (id: string) => StatusDef) {
     this.world = world
     this.getStatus = getStatus
-    this.gfx = scene.add.graphics().setDepth(12)
+    this.vfx = new Vfx(scene)
   }
 
   launch(def: SpellDelivery, ctx: CastContext): Delivery | null {
@@ -66,6 +65,9 @@ export class SpellSystem {
       while (siblings.length >= def.maxInstances) siblings.shift()!.cancel()
     }
     const d = new Delivery(def, ctx, this)
+    if (ctx.depth === 0 && def.delivery !== 'self' && def.delivery !== 'weapon-imbue' && def.delivery !== 'dash') {
+      this.vfx.castFlare(ctx.origin.x, ctx.origin.y, ctx.direction, d.pal)
+    }
     if (!d.cancelled) this.live.push(d)
     return d
   }
@@ -109,10 +111,10 @@ export class SpellSystem {
     this.live = this.live.filter((l) => !l.cancelled)
     for (const a of this.allies) a.update(dt)
     this.allies = this.allies.filter((a) => !a.gone)
-    this.gfx.clear()
-    for (const l of this.live) l.draw(this.gfx)
-    for (const a of this.allies) a.draw(this.gfx)
-    drawImpacts(this.gfx, dt)
+    this.vfx.begin(dt)
+    for (const l of this.live) l.draw(this.vfx, dt)
+    for (const a of this.allies) a.draw(this.vfx, dt)
+    this.vfx.end(dt)
   }
 
   get combat() {
@@ -150,7 +152,9 @@ class Delivery {
   private beamEnd: Vec
   private allies: Ally[] = []
   private drainApplied = false
-  private colour: number
+  readonly pal: Palette
+  private trail: Vec[] = []
+  private emitClock = 0
 
   constructor(def: SpellDelivery, ctx: CastContext, sys: SpellSystem) {
     this.def = def
@@ -158,7 +162,7 @@ class Delivery {
     this.sys = sys
     this.pos = { ...ctx.origin }
     this.beamEnd = { ...ctx.origin }
-    this.colour = colourOf(ctx.spell.colour)
+    this.pal = paletteFor(ctx.spell.colour, (def.attack ?? ctx.attack).damage)
     const world = sys.combat
     const self = ctx.caster.self
 
@@ -171,17 +175,19 @@ class Delivery {
         break
       case 'self':
         deliverHit(sys, def, ctx, self)
+        sys.vfx.uplift(self.x, self.y, self.radius + 16, this.pal)
         this.cancel()
         break
       case 'target':
         if (ctx.target?.actor.alive && (!def.requireLineOfSight || world.visible(this.pos, ctx.target))) {
           deliverHit(sys, def, ctx, ctx.target)
-          this.flashAt({ x: ctx.target.x, y: ctx.target.y }, 24)
+          this.flashAt({ x: ctx.target.x, y: ctx.target.y }, 34)
         }
         this.cancel()
         break
       case 'weapon-imbue':
         ctx.caster.imbue(def.bonusDamage, def.duration, def.weaponColour)
+        sys.vfx.uplift(self.x, self.y, self.radius + 10, this.pal)
         this.cancel()
         break
       case 'ground-zone':
@@ -300,7 +306,10 @@ class Delivery {
               deliverHit(this.sys, def, ctx, t)
             }
           }
-          if (!def.held) this.cancel()
+          if (!def.held) {
+            this.spray(70, 1)
+            this.cancel()
+          }
         }
         break
       }
@@ -329,6 +338,8 @@ class Delivery {
           deliverHit(this.sys, def, ctx, target, Math.pow(def.damageFalloff, def.targetCount - this.remaining))
           this.hits.add(target)
           this.points.push({ ...this.pos }, { x: target.x, y: target.y })
+          this.sys.vfx.bolt(this.pos, target, this.pal, 0.32, 1.2)
+          this.sys.vfx.impact(target.x, target.y, 22, this.pal)
           this.pos = { x: target.x, y: target.y }
           this.remaining--
           ctx.target = world.nearestHostile(self, this.pos, def.jumpRadius, def.requireLineOfSight, this.hits)
@@ -465,16 +476,16 @@ class Delivery {
         if (near && !this.hits.has(t) && world.visible(wall, t)) {
           this.hits.add(t)
           deliverHit(this.sys, this.def, this.ctx, t)
-          this.flashAt({ x: t.x, y: t.y }, 14)
+          this.flashAt({ x: t.x, y: t.y }, Math.max(22, radius * 1.6))
           if (!wave && this.def.delivery === 'projectile' && this.hits.size > this.def.pierce) return this.cancel()
         }
       }
       if (Math.hypot(wall.x - end.x, wall.y - end.y) > 0.1) {
-        this.flashAt(wall, 12)
+        this.flashAt(wall, Math.max(18, radius * 1.3))
         return this.cancel()
       }
     }
-    if (this.def.delivery === 'projectile' && this.elapsed >= this.def.duration) this.flashAt(this.pos, 10)
+    if (this.def.delivery === 'projectile' && this.elapsed >= this.def.duration) this.flashAt(this.pos, Math.max(14, radius))
   }
 
   // Brief impact flashes, drawn by the system for a moment after this delivery ends.
@@ -482,105 +493,299 @@ class Delivery {
     this.flashAt(this.pos, radius)
   }
   private flashAt(at: Vec, radius: number) {
-    impacts.push({ x: at.x, y: at.y, radius, colour: this.colour, age: 0 })
+    this.sys.vfx.impact(at.x, at.y, radius, this.pal)
   }
 
-  draw(g: Phaser.GameObjects.Graphics) {
-    const { def } = this
-    const c = this.colour
+  /** Flame or spark spray filling the cone; `count` particles at `intensity`. */
+  private spray(count: number, intensity: number) {
+    const def = this.def
+    if (def.delivery !== 'cone') return
+    const v = this.sys.vfx
+    const half = rad(def.angle / 2)
+    const fire = this.pal.element === 'fire'
+    for (let i = 0; i < count; i++) {
+      const a = this.ctx.direction + rand(-half, half) * rand(0.3, 0.95)
+      const life = rand(0.32, 0.5)
+      const speed = (def.radius / life) * rand(0.75, 1.05)
+      const start = rand(10, 26)
+      v.emit({
+        x: this.pos.x + Math.cos(a) * start,
+        y: this.pos.y + Math.sin(a) * start,
+        vx: Math.cos(a) * speed,
+        vy: Math.sin(a) * speed,
+        life,
+        size: fire ? rand(3, 6) : rand(2, 4),
+        endSize: fire ? rand(12, 20) : 1,
+        colour: this.pal.core,
+        endColour: fire ? this.pal.deep : this.pal.main,
+        alpha: (fire ? 0.55 : 0.8) * intensity,
+        drag: 0.6,
+        kind: fire || i % 3 ? 'dot' : 'streak',
+      })
+      if (fire && i % 6 === 0) v.ember(this.pos.x + Math.cos(a) * def.radius * rand(0.3, 0.9), this.pos.y + Math.sin(a) * def.radius * rand(0.3, 0.9), this.pal)
+    }
+  }
+
+  /** Particles to emit this frame for a steady `perSecond` rate. */
+  private rate(perSecond: number, dt: number) {
+    this.emitClock += perSecond * dt
+    const n = Math.floor(this.emitClock)
+    this.emitClock -= n
+    return n
+  }
+
+  draw(v: Vfx, dt: number) {
+    const { def, pal } = this
+    const air = v.air
+    const ground = v.ground
     const dir = dirOf(this.ctx.direction)
+    const t = v.time
+    // Fade in quickly and out over the last moments of anything that lingers.
+    const fade = Math.max(0, Math.min(1, this.elapsed / 0.15, (def.duration - this.elapsed) / 0.3))
+
     switch (def.delivery) {
+      case 'projectile': {
+        const r = def.radius
+        this.trail.unshift({ ...this.pos })
+        if (this.trail.length > 12) this.trail.pop()
+        for (let i = 0; i + 1 < this.trail.length; i++) {
+          const k = 1 - i / this.trail.length
+          air.lineStyle(r * 2.4 * k, pal.main, 0.16 * k)
+          air.lineBetween(this.trail[i].x, this.trail[i].y, this.trail[i + 1].x, this.trail[i + 1].y)
+          air.lineStyle(r * 0.9 * k, pal.core, 0.45 * k)
+          air.lineBetween(this.trail[i].x, this.trail[i].y, this.trail[i + 1].x, this.trail[i + 1].y)
+        }
+        v.orb(air, this.pos.x, this.pos.y, r, pal)
+        const back = { x: -dir.x, y: -dir.y }
+        switch (pal.element) {
+          case 'fire':
+            for (let i = this.rate(70, dt); i > 0; i--) {
+              v.emit({ x: this.pos.x + rand(-r, r) * 0.5, y: this.pos.y + rand(-r, r) * 0.5, vx: back.x * 60 + rand(-30, 30), vy: back.y * 60 + rand(-30, 30), life: rand(0.25, 0.45), size: r * 0.7, endSize: r * 1.4, colour: pal.core, endColour: pal.deep, alpha: 0.5, drag: 2 })
+              if (Math.random() < 0.3) v.ember(this.pos.x, this.pos.y, pal, 0.7)
+            }
+            break
+          case 'magic':
+            v.shard(air, this.pos.x, this.pos.y, this.ctx.direction, r * 3.2, r * 1.3, pal)
+            for (let i = this.rate(40, dt); i > 0; i--) {
+              v.emit({ x: this.pos.x, y: this.pos.y, vx: back.x * 40 + rand(-45, 45), vy: back.y * 40 + rand(-45, 45), life: rand(0.3, 0.55), size: rand(1.2, 2.2), endSize: 0.4, colour: pal.core, endColour: pal.main, drag: 2, kind: 'shard' })
+            }
+            break
+          case 'lightning':
+            for (let i = 0; i < 3; i++) {
+              const a = Math.random() * Math.PI * 2
+              v.glowLine(air, v.jagged(this.pos, { x: this.pos.x + Math.cos(a) * r * 2.6, y: this.pos.y + Math.sin(a) * r * 2.6 }, 3, r * 0.8), 2, pal, 0.8)
+            }
+            break
+          case 'holy':
+          case 'restore':
+            for (let i = 0; i < 4; i++) {
+              const a = t * 3 + (i * Math.PI) / 2
+              air.lineStyle(2, pal.core, 0.5)
+              air.lineBetween(this.pos.x, this.pos.y, this.pos.x + Math.cos(a) * r * 2.8, this.pos.y + Math.sin(a) * r * 2.8)
+            }
+            for (let i = this.rate(25, dt); i > 0; i--) {
+              v.emit({ x: this.pos.x, y: this.pos.y, vx: rand(-20, 20), vy: rand(-20, 20), life: rand(0.4, 0.7), size: 2, endSize: 0.3, colour: pal.core, endColour: pal.main })
+            }
+            break
+        }
+        break
+      }
+
       case 'beam':
       case 'tether': {
-        const width = def.delivery === 'beam' ? def.width : 8
-        g.lineStyle(width, c, 0.25)
-        g.lineBetween(this.pos.x, this.pos.y, this.beamEnd.x, this.beamEnd.y)
-        g.lineStyle(3, c, 0.95)
-        g.lineBetween(this.pos.x, this.pos.y, this.beamEnd.x, this.beamEnd.y)
+        const a = this.pos
+        const b = this.beamEnd
+        const beam = def.delivery === 'beam'
+        const width = beam ? def.width : 9
+        const broken = !beam && this.brokenTime > 0
+        const alpha = fade * (broken ? 0.35 + 0.25 * Math.sin(t * 40) : 1)
+        if (pal.element === 'lightning') {
+          v.glowLine(air, v.jagged(a, b, Math.max(4, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / 20)), width * 0.9), width * 0.8, pal, alpha)
+        } else if (beam) {
+          v.glowLine(air, [a, b], width, pal, alpha)
+          for (let s = 0; s < 2; s++) {
+            const pts = v.wavy(a, b, width * 0.45, 70, t * 18 + s * Math.PI)
+            air.lineStyle(2, pal.core, 0.45 * alpha)
+            air.beginPath()
+            air.moveTo(pts[0].x, pts[0].y)
+            for (const p of pts) air.lineTo(p.x, p.y)
+            air.strokePath()
+          }
+        } else {
+          // Tether: two strands twisting round each other, with motes drawn back to the caster.
+          for (let s = 0; s < 2; s++) v.glowLine(air, v.wavy(a, b, 7, 60, t * 9 + s * Math.PI), 4, pal, alpha * 0.8)
+          for (let i = 0; i < 4; i++) {
+            const k = (t * 0.9 + i / 4) % 1
+            v.orb(air, b.x + (a.x - b.x) * k, b.y + (a.y - b.y) * k, 3.5, pal, alpha)
+          }
+          v.runeCircle(ground, b.x, b.y, 34, pal, alpha * 0.8, t * 2)
+        }
+        v.orb(air, a.x, a.y, width * 0.55, pal, alpha)
+        v.orb(air, b.x, b.y, width * (beam ? 0.75 : 0.5), pal, alpha)
+        if (beam) {
+          const back = Math.atan2(a.y - b.y, a.x - b.x)
+          for (let i = this.rate(70, dt); i > 0; i--) v.burst(b.x, b.y, pal, 1, 260, back, 2.2)
+          for (let i = this.rate(30, dt); i > 0; i--) {
+            const k = Math.random()
+            v.emit({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, vx: dir.x * 120 + rand(-30, 30), vy: dir.y * 120 + rand(-30, 30), life: 0.3, size: 2, endSize: 0.4, colour: pal.core, endColour: pal.main })
+          }
+          if (pal.element === 'fire') for (let i = this.rate(20, dt); i > 0; i--) v.ember(b.x, b.y, pal)
+        }
         break
       }
-      case 'projectile':
-        g.fillStyle(c, 0.25)
-        g.fillCircle(this.pos.x, this.pos.y, def.radius * 1.7)
-        g.fillStyle(c, 0.95)
-        g.fillCircle(this.pos.x, this.pos.y, def.radius)
-        g.fillStyle(0xffffff, 0.85)
-        g.fillCircle(this.pos.x, this.pos.y, def.radius * 0.45)
-        break
+
       case 'wave': {
         const a = this.ctx.direction
-        g.lineStyle(def.thickness, c, 0.4)
-        g.beginPath()
-        g.arc(this.pos.x - dir.x * (def.width / 2), this.pos.y - dir.y * (def.width / 2), def.width / 2, a - Math.PI / 2, a + Math.PI / 2)
-        g.strokePath()
-        break
-      }
-      case 'cone': {
-        const half = rad(def.angle / 2)
-        g.fillStyle(c, 0.18)
-        g.slice(this.pos.x, this.pos.y, def.radius, this.ctx.direction - half, this.ctx.direction + half, false)
-        g.fillPath()
-        break
-      }
-      case 'ground-zone':
-      case 'aura':
-        g.fillStyle(c, 0.12)
-        g.fillCircle(this.pos.x, this.pos.y, def.radius)
-        g.lineStyle(2, c, 0.8)
-        g.strokeCircle(this.pos.x, this.pos.y, def.radius)
-        break
-      case 'trap':
-        g.lineStyle(2, c, this.elapsed >= def.armingDelay ? 0.85 : 0.3)
-        g.strokeCircle(this.pos.x, this.pos.y, def.triggerRadius)
-        g.fillStyle(c, 0.8)
-        g.fillCircle(this.pos.x, this.pos.y, 6)
-        break
-      case 'orbiting':
-        for (let i = 0; i < this.remaining; i++) {
-          const a = this.elapsed * rad(def.orbitSpeed) + ((i + 1) * Math.PI * 2) / def.count
-          g.fillStyle(c, 0.95)
-          g.fillCircle(this.pos.x + Math.cos(a) * def.orbitRadius, this.pos.y + Math.sin(a) * def.orbitRadius, 7)
+        const r = def.width / 2
+        const cx = this.pos.x - dir.x * r
+        const cy = this.pos.y - dir.y * r
+        const arc = (radius: number, w: number, colour: number, alpha: number) => {
+          air.lineStyle(w, colour, alpha)
+          air.beginPath()
+          air.arc(cx, cy, radius, a - Math.PI / 2 + 0.15, a + Math.PI / 2 - 0.15)
+          air.strokePath()
+        }
+        const th = def.thickness
+        arc(r - th * 0.9, th * 1.6, pal.deep, 0.1)
+        arc(r - th * 0.4, th * 1.4, pal.main, 0.22)
+        arc(r, th * 0.8, pal.main, 0.55)
+        arc(r + th * 0.15, Math.max(2, th * 0.25), pal.core, 0.95)
+        for (let i = this.rate(140, dt); i > 0; i--) {
+          const ang = a + rand(-Math.PI / 2, Math.PI / 2) * 0.9
+          const px = cx + Math.cos(ang) * r
+          const py = cy + Math.sin(ang) * r
+          v.emit({ x: px, y: py, vx: dir.x * def.speed * 0.3 + Math.cos(ang) * 40, vy: dir.y * def.speed * 0.3 + Math.sin(ang) * 40, life: rand(0.2, 0.4), size: rand(1.5, 3), endSize: 0.4, colour: pal.core, endColour: pal.main, drag: 3, kind: pal.element === 'magic' ? 'shard' : 'streak' })
         }
         break
-      case 'barrage':
+      }
+
+      case 'cone': {
+        if (!def.held) break
+        const half = rad(def.angle / 2)
+        ground.fillStyle(pal.main, 0.05 * fade)
+        ground.slice(this.pos.x, this.pos.y, def.radius, this.ctx.direction - half, this.ctx.direction + half, false)
+        ground.fillPath()
+        this.spray(this.rate(170, dt), fade)
+        v.orb(air, this.pos.x + dir.x * 22, this.pos.y + dir.y * 22, 8, pal, fade)
+        break
+      }
+
+      case 'ground-zone':
+      case 'aura': {
+        const r = def.radius
+        const { x, y } = this.pos
+        const delay = def.delivery === 'ground-zone' ? def.initialDelay : 0
+        if (this.elapsed < delay) {
+          // Telegraph: a ring closing in on the edge.
+          const k = this.elapsed / Math.max(0.01, delay)
+          ground.fillStyle(pal.main, 0.04 + 0.06 * k)
+          ground.fillCircle(x, y, r)
+          ground.lineStyle(2, pal.main, 0.3 + 0.5 * k)
+          ground.strokeCircle(x, y, r * (1.4 - 0.4 * k))
+          break
+        }
+        ground.fillStyle(pal.deep, 0.1 * fade)
+        ground.fillCircle(x, y, r)
+        ground.fillStyle(pal.main, 0.06 * fade)
+        ground.fillCircle(x, y, r * 0.72)
+        ground.fillStyle(pal.main, 0.06 * fade)
+        ground.fillCircle(x, y, r * 0.4)
+        v.runeCircle(ground, x, y, r, pal, fade, t * (def.delivery === 'aura' ? 0.9 : 0.5))
+        const n = this.rate(Math.min(140, (r * r) / 250), dt)
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * Math.PI * 2
+          const d = Math.sqrt(Math.random()) * r * 0.95
+          const px = x + Math.cos(a) * d
+          const py = y + Math.sin(a) * d
+          switch (pal.element) {
+            case 'fire':
+              v.emit({ x: px, y: py, vx: rand(-10, 10), vy: rand(-50, -20), life: rand(0.4, 0.7), size: rand(5, 9), endSize: 1.5, colour: pal.core, endColour: pal.deep, alpha: 0.45 * fade, drag: 0.5, ground: true })
+              if (i % 3 === 0) v.ember(px, py, pal)
+              break
+            case 'lightning':
+              if (i % 4 === 0) v.bolt({ x: px, y: py }, { x: px + rand(-40, 40), y: py + rand(-40, 40) }, pal, 0.12, 0.5)
+              break
+            default:
+              v.emit({ x: px, y: py, vx: rand(-8, 8), vy: rand(-45, -15), life: rand(0.6, 1.1), size: rand(1.5, 2.8), endSize: 0.3, colour: pal.core, endColour: pal.main, alpha: fade, kind: pal.element === 'magic' && i % 2 ? 'shard' : 'dot' })
+          }
+        }
+        break
+      }
+
+      case 'trap': {
+        const armed = this.elapsed >= def.armingDelay
+        const pulse = 0.75 + 0.25 * Math.sin(t * 5)
+        v.runeCircle(ground, this.pos.x, this.pos.y, 22, pal, armed ? pulse : 0.3, t * 1.5)
+        v.orb(air, this.pos.x, this.pos.y, armed ? 4.5 : 3, pal, armed ? pulse : 0.4)
+        // The trigger radius as a slow dashed ring.
+        ground.lineStyle(1.5, pal.main, armed ? 0.25 : 0.1)
+        for (let i = 0; i < 24; i++) {
+          const a = t * 0.3 + (i * Math.PI) / 12
+          ground.beginPath()
+          ground.arc(this.pos.x, this.pos.y, def.triggerRadius, a, a + 0.13)
+          ground.strokePath()
+        }
+        break
+      }
+
+      case 'orbiting': {
+        ground.lineStyle(1, pal.main, 0.12)
+        ground.strokeCircle(this.pos.x, this.pos.y, def.orbitRadius)
+        const spin = rad(def.orbitSpeed)
+        for (let i = 0; i < this.remaining; i++) {
+          const a = this.elapsed * spin + ((i + 1) * Math.PI * 2) / def.count
+          const px = this.pos.x + Math.cos(a) * def.orbitRadius
+          const py = this.pos.y + Math.sin(a) * def.orbitRadius
+          air.lineStyle(5, pal.main, 0.2)
+          air.beginPath()
+          air.arc(this.pos.x, this.pos.y, def.orbitRadius, spin >= 0 ? a - 0.45 : a, spin >= 0 ? a : a + 0.45)
+          air.strokePath()
+          v.shard(air, px, py, a + (spin >= 0 ? Math.PI / 2 : -Math.PI / 2), 18, 7, pal)
+        }
+        break
+      }
+
+      case 'barrage': {
         for (let i = this.remaining; i < this.points.length; i++) {
           const p = this.points[i]
-          g.lineStyle(1.5, c, 0.5)
-          g.strokeCircle(p.x, p.y, def.impactRadius)
+          const due = def.telegraphDuration + i * def.impactInterval
+          const k = Math.max(0, Math.min(1, this.elapsed / due))
+          const r = def.impactRadius
+          ground.fillStyle(pal.main, 0.03 + 0.12 * k * k)
+          ground.fillCircle(p.x, p.y, r)
+          ground.lineStyle(2, pal.main, 0.25 + 0.6 * k)
+          ground.strokeCircle(p.x, p.y, r * (1.6 - 0.6 * k))
+          ground.lineStyle(1, pal.core, 0.3 * k)
+          ground.lineBetween(p.x - r * 0.3, p.y, p.x + r * 0.3, p.y)
+          ground.lineBetween(p.x, p.y - r * 0.3, p.x, p.y + r * 0.3)
+          // The falling bolt, closing on the mark from above-left as it comes due.
+          if (k > 0.75) {
+            const f = (1 - k) / 0.25
+            v.glowLine(air, [{ x: p.x - 60 * f, y: p.y - 160 * f }, p], 5, pal, 1 - f * 0.5)
+          }
         }
         break
+      }
+
+      case 'dash': {
+        const pts = this.points.slice(-14)
+        for (let i = 1; i < pts.length; i++) {
+          const k = i / pts.length
+          air.lineStyle(def.hitWidth * k, pal.main, 0.16 * k * fade)
+          air.lineBetween(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y)
+          air.lineStyle(def.hitWidth * 0.25 * k, pal.core, 0.6 * k * fade)
+          air.lineBetween(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y)
+        }
+        for (let i = this.rate(120, dt); i > 0; i--) {
+          v.emit({ x: this.pos.x + rand(-20, 20), y: this.pos.y + rand(-20, 20), vx: -dir.x * 80 + rand(-30, 30), vy: -dir.y * 80 + rand(-30, 30), life: rand(0.25, 0.45), size: rand(1.5, 3), endSize: 0.3, colour: pal.core, endColour: pal.main, drag: 2, kind: pal.element === 'magic' ? 'shard' : 'streak' })
+        }
+        break
+      }
+
       case 'chain':
-        for (let i = 0; i + 1 < this.points.length; i += 2) {
-          g.lineStyle(3, c, 0.9)
-          g.lineBetween(this.points[i].x, this.points[i].y, this.points[i + 1].x, this.points[i + 1].y)
-        }
-        break
-      case 'dash':
-        for (let i = 1; i < this.points.length; i++) {
-          g.lineStyle(def.hitWidth, c, 0.12)
-          g.lineBetween(this.points[i - 1].x, this.points[i - 1].y, this.points[i].x, this.points[i].y)
-        }
+        // Drawn as bolts when each jump lands.
         break
     }
-  }
-}
-
-// Impact flashes outlive their deliveries, so they're tracked module-wide and drawn by
-// whichever SpellSystem updates.
-const impacts: { x: number; y: number; radius: number; colour: number; age: number }[] = []
-const FLASH = 0.25
-
-export function drawImpacts(g: Phaser.GameObjects.Graphics, dt: number) {
-  for (let i = impacts.length - 1; i >= 0; i--) {
-    const f = impacts[i]
-    f.age += dt
-    if (f.age >= FLASH) {
-      impacts.splice(i, 1)
-      continue
-    }
-    const k = 1 - f.age / FLASH
-    g.fillStyle(f.colour, 0.35 * k)
-    g.fillCircle(f.x, f.y, f.radius * (0.6 + 0.4 * (1 - k)))
   }
 }
 
@@ -595,6 +800,7 @@ class Ally {
   private attackClock = 0
   private acquireClock = 0
   private foe: Target | null = null
+  private emitClock = 0
 
   constructor(def: SummonDef, ctx: CastContext, at: Vec, lifetime: number, sys: SpellSystem) {
     this.def = def
@@ -651,14 +857,20 @@ class Ally {
     }
   }
 
-  draw(g: Phaser.GameObjects.Graphics) {
-    const c = colourOf(this.ctx.spell.colour)
-    g.fillStyle(c, 0.2)
-    g.fillCircle(this.target.x, this.target.y, 26)
-    g.fillStyle(c, 0.9)
-    g.fillCircle(this.target.x, this.target.y, 12)
-    g.fillStyle(0xffffff, 0.9)
-    g.fillCircle(this.target.x, this.target.y, 5)
+  draw(v: Vfx, dt: number) {
+    const pal = paletteFor(this.ctx.spell.colour, this.def.delivery.attack?.damage)
+    const { x, y } = this.target
+    const pulse = 1 + 0.12 * Math.sin(v.time * 6)
+    // A wisp: pulsing core, motes circling it, and a faint trail.
+    v.orb(v.air, x, y, 9 * pulse, pal)
+    for (let i = 0; i < 3; i++) {
+      const a = v.time * 4 + (i * Math.PI * 2) / 3
+      v.orb(v.air, x + Math.cos(a) * 18, y + Math.sin(a) * 18, 2.5, pal, 0.8)
+    }
+    this.emitClock += 25 * dt
+    for (; this.emitClock >= 1; this.emitClock--) {
+      v.emit({ x: x + rand(-6, 6), y: y + rand(-6, 6), vx: rand(-15, 15), vy: rand(-30, -5), life: rand(0.4, 0.7), size: 2.2, endSize: 0.3, colour: pal.core, endColour: pal.main })
+    }
   }
 }
 

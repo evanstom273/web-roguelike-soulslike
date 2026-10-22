@@ -1,7 +1,7 @@
-import artUrl from '../../art/placeholder-catalyst.svg?no-inline'
+import artUrl from '../../art/weapons/staff.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Casts every spell; its own power and Intelligence scaling decide spell damage.
+// Casts every spell; its own power and Intelligence scaling decide spell damage.
 // The melee moves below are never used (catalysts only cast).
 export default defineWeapon({
   id: 'staff',
@@ -11,11 +11,11 @@ export default defineWeapon({
   requirements: {},
   art: {
     url: artUrl,
-    width: 108,
-    height: 21,
+    width: 150,
+    height: 28,
     grip: {
-      x: 9,
-      y: 10.5,
+      x: 34,
+      y: 14,
     },
   },
   light: {

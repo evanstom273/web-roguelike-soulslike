@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="126" height="26" viewBox="0 0 126 26">
+  <!-- Straight sword, overhead, pointing +x. Grip pivot at (12, 13). Light from the top-left. -->
+  <defs>
+    <linearGradient id="ss-blade-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3e7ea"/><stop offset="1" stop-color="#a7adb3"/></linearGradient>
+    <linearGradient id="ss-blade-bot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c8288"/><stop offset="1" stop-color="#4a4f54"/></linearGradient>
+    <linearGradient id="ss-guard" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9a9fa4"/><stop offset="1" stop-color="#3a3d41"/></linearGradient>
+  </defs>
+  <g stroke="#141618" stroke-width="1.2" stroke-linejoin="round">
+    <path d="M27 8.5 L112 9.5 L124 13 L112 16.5 L27 17.5 Z" fill="url(#ss-blade-bot)"/>
+    <path d="M27 8.5 L112 9.5 L124 13 L27 13 Z" fill="url(#ss-blade-top)" stroke="none"/>
+    <path d="M27 8.5 L112 9.5 L124 13 L112 16.5 L27 17.5 Z" fill="none"/>
+    <path d="M29 13 L114 13" stroke="#2c3034" stroke-width="0.9" fill="none"/>
+    <path d="M30 10.6 L100 11.2" stroke="#ffffff" stroke-opacity="0.7" stroke-width="0.7" fill="none"/>
+    <rect x="6" y="10" width="17" height="6" rx="2" fill="#4a3220"/>
+    <path d="M9 10 L11 16 M13 10 L15 16 M17 10 L19 16" stroke="#2a1b10" stroke-width="0.8" fill="none"/>
+    <path d="M22 1.5 C25 1 27 2 27.5 4 L27.5 22 C27 24 25 25 22 24.5 C23.5 18 23.5 8 22 1.5 Z" fill="url(#ss-guard)"/>
+    <circle cx="4.5" cy="13" r="4" fill="url(#ss-guard)"/>
+    <circle cx="3.6" cy="11.9" r="1.1" fill="#e8ebee" stroke="none"/>
+  </g>
+</svg>

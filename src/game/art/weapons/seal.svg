@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="66" height="40" viewBox="0 0 66 40">
+  <!-- Sacred seal on a short haft, overhead, pointing +x. Grip pivot at (8, 20). -->
+  <defs>
+    <radialGradient id="sl-gold" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#fff0b8"/><stop offset="0.45" stop-color="#d6a640"/><stop offset="1" stop-color="#6b4810"/></radialGradient>
+    <linearGradient id="sl-haft" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d6a640"/><stop offset="1" stop-color="#6b4810"/></linearGradient>
+  </defs>
+  <g stroke="#141618" stroke-width="1.1" stroke-linejoin="round">
+    <rect x="1" y="17" width="16" height="6" rx="2" fill="#3a2414"/>
+    <path d="M4 17 L5.5 23 M8 17 L9.5 23 M12 17 L13.5 23" stroke="#1d1209" stroke-width="0.7" fill="none"/>
+    <rect x="16" y="17.8" width="14" height="4.4" rx="1.4" fill="url(#sl-haft)"/>
+    <circle cx="46" cy="20" r="17.5" fill="url(#sl-gold)"/>
+    <circle cx="46" cy="20" r="13" fill="none" stroke="#7a5414" stroke-width="1"/>
+    <path d="M46 9 L48.5 17.5 L57 20 L48.5 22.5 L46 31 L43.5 22.5 L35 20 L43.5 17.5 Z" fill="#8a6018" stroke="#4a320a" stroke-width="0.8"/>
+    <circle cx="46" cy="20" r="2.4" fill="#fff6d6" stroke="#4a320a" stroke-width="0.7"/>
+    <path d="M35 12 C38 7.5 43 5.5 48 5.8" stroke="#fffbe8" stroke-opacity="0.8" stroke-width="1" fill="none"/>
+  </g>
+</svg>
