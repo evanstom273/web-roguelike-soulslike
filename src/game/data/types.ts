@@ -4,10 +4,18 @@ import type { DamageMap } from './damageTypes.ts'
 // Definition schemas: the data-driven "resources" for weapons, spells, statuses and
 // enemies. Each content file in data/<kind>/ default-exports one definition made with
 // the matching define* helper, and is picked up automatically by the registry.
-// Times are in seconds, distances in world px, angles in degrees.
+//
+// The model and the numbers are ported from the Godot version (Ashen Vow), converted to
+// this game's units: world px, seconds, degrees. See data/README.md.
 
-/** How much each attribute adds to damage, e.g. { strength: 0.6 }. */
-export type Scaling = Partial<Record<AttributeId, number>>
+/** Damage bonus per attribute point above `referenceLevel`, e.g. { strength: 0.025 }. */
+export interface Scaling {
+  referenceLevel: number
+  per: Partial<Record<AttributeId, number>>
+}
+
+/** Percentage damage negation per damage type; negative values are weaknesses. */
+export type Defence = DamageMap
 
 /** Art drawn at native size (1 SVG unit = 1 world px). */
 export interface SvgArt {
@@ -16,273 +24,286 @@ export interface SvgArt {
   height: number
 }
 
+/** Attribute minimums to use something. */
+export type Requirements = Partial<Record<AttributeId, number>>
+
 // ---------------------------------------------------------------------------
-// Hits and statuses
+// Attacks, effects and statuses
 
 /**
- * A status inflicted by a hit. For statuses with a buildup meter, `buildup` is how much
- * this hit adds; statuses without one apply on every hit and ignore it.
+ * The percentage max-HP burn (the black flame mechanic). Total damage, not per tick;
+ * the total and duration grow with Intelligence along a log curve.
  */
+export interface MaxHealthDrainDef {
+  id: string // the same id refreshes rather than stacking
+  startingLevel: number
+  levelCap: number
+  curvature: number
+  startingFraction: number
+  cappedFraction: number
+  startingDuration: number
+  cappedDuration: number
+}
+
 export interface StatusApplication {
   status: string // a status id from data/statuses
-  buildup?: number
+  buildup: number
 }
 
-/** What landing a hit does: typed damage plus any statuses. */
-export interface HitDef {
+/**
+ * Everything one hit or swing carries: damage, scaling, statuses, and its timing and
+ * shape when it's a melee swing or a spell cast.
+ */
+export interface AttackDef {
+  name: string
   damage: DamageMap
-  statuses?: StatusApplication[]
+  scaling: Scaling | null
+  statuses: StatusApplication[]
+  maxHealthDrain: MaxHealthDrainDef | null
+  poiseDamage: number
+  stamina: number
+  knockback: number // px/s of recoil given to the receiver
+  windup: number
+  active: number
+  recovery: number
+  /** Fraction of walk speed you can still move at while doing this. */
+  movementMultiplier: number
+  uninterruptibleWhileActive: boolean
+  /** Melee: hold longer than this to charge (for the heavy button). */
+  chargeThreshold: number
+  // Melee geometry
+  reach: number
+  hitRadius: number
+  arc: number
+  lungeSpeed: number
+  // Feel
+  hitStop: number
+  cameraShake: number
 }
 
-export type StatusEffect =
-  /** Damage every `interval` for `duration` (burns, poisons, black flame-style). */
-  | { kind: 'dot'; duration: number; interval: number; damage?: DamageMap; percentMaxHp?: number }
-  /** One-off damage when the status lands or procs (bleed-style). */
-  | { kind: 'burst'; damage?: DamageMap; percentMaxHp?: number }
-  /** Movement speed multiplier, e.g. 0.6. */
-  | { kind: 'slow'; duration: number; multiplier: number }
-  /** Damage taken multiplier, e.g. 1.2. */
-  | { kind: 'vulnerability'; duration: number; multiplier: number }
+/** A timed buff/debuff or instant restore, from spells or status procs. */
+export interface EffectDef {
+  id: string // the same id refreshes instead of stacking
+  name: string
+  tags: string[]
+  negative: boolean
+  cleanseTags: string[] // removes statuses / negative effects with these tags
+  healthRestore: number
+  staminaRestore: number
+  duration: number // 0 = instant only
+  interval: number
+  periodicAttack: AttackDef | null
+  periodicHeal: number
+  movementMultiplier: number
+  defenceBonus: Defence | null
+}
 
+/**
+ * Builds up on a meter; when it fills the meter resets, the status can't build again for
+ * `retriggerDelay`, and its effect and/or attack fire.
+ */
 export interface StatusDef {
   id: string
   name: string
-  description?: string
   colour: string
-  /**
-   * With a meter, hits add buildup and the effects fire when it fills (then it resets).
-   * Without one, the effects fire on every hit that carries this status.
-   */
-  buildup?: { threshold: number; decayPerSecond: number }
-  /** What re-applying does while it's already active. */
-  stacking: 'refresh' | 'stack' | 'ignore'
-  maxStacks?: number // for 'stack'
-  effects: StatusEffect[]
+  threshold: number
+  decayPerSecond: number
+  decayDelay: number
+  retriggerDelay: number
+  tags: string[]
+  triggeredEffect: EffectDef | null
+  triggeredAttack: AttackDef | null
 }
 
 // ---------------------------------------------------------------------------
 // Weapons
-
-/** One swing: light, heavy, charged, or a skill. */
-export interface MoveDef extends HitDef {
-  stamina: number
-  windup: number
-  active: number
-  recovery: number
-  lunge: number // distance stepped forward during the active part
-  arc: number // degrees swept
-  reach: number
-}
 
 /** A weapon skill / Ash of War. Reusable, gated by a long cooldown and a big stamina cost. */
 export interface SkillDef {
   name: string
   description?: string
   cooldown: number
-  move: MoveDef // its stamina is the skill's stamina cost
+  attack: AttackDef // its stamina is the skill's stamina cost
 }
 
-interface WeaponBase {
+export type WeaponCategory =
+  | 'straight-sword'
+  | 'greatsword'
+  | 'dagger'
+  | 'spear'
+  | 'axe'
+  | 'hammer'
+  | 'staff'
+  | 'seal'
+  | 'wand'
+  | 'shield'
+
+export type SpellSchool = 'sorcery' | 'incantation' | 'arcane'
+
+export interface WeaponDef {
   id: string
   name: string
   description?: string
+  category: WeaponCategory
+  weight: number
+  requirements: Requirements
   art: SvgArt & { grip: { x: number; y: number } } // grip = the point held in the hand
-  scaling: Scaling
-  skill?: SkillDef
-}
-
-export interface MeleeWeaponDef extends WeaponBase {
-  kind: 'melee'
-  light: MoveDef
-  heavy: MoveDef
-  charged: MoveDef
-  charge: {
-    holdToCharge: number // holding heavy longer than this starts the charged attack
-    maxCharge: number // releases automatically after this long
-  }
+  light: AttackDef
+  heavy: AttackDef
+  /** Hold heavy past `heavy.chargeThreshold` to charge this. */
+  charged: AttackDef
   /** Minimum time between starts of the same kind of attack. Charged shares heavy's. */
   cooldown: { light: number; heavy: number }
+  /** Catalysts cast the selected spell from the light button instead of swinging. */
+  catalyst: { schools: SpellSchool[] /* empty = all */; basicSpell: string | null } | null
+  skill: SkillDef | null
 }
-
-/** Casting tool: the light attack button casts the selected spell. */
-export interface CatalystWeaponDef extends WeaponBase {
-  kind: 'catalyst'
-  castSpeed: number // multiplier on spells' cast times; 1 = as written
-}
-
-export type WeaponDef = MeleeWeaponDef | CatalystWeaponDef
 
 // ---------------------------------------------------------------------------
 // Spells
 //
-// A spell is one or more deliveries that all fire when the cast completes. `at: 'aim'`
-// places something `distance` ahead of the caster (stopping short of walls); `'self'`
-// places it on the caster.
+// A spell is a cast (timing, stamina, how much you can move) plus one delivery. A
+// delivery's own `attack` overrides the cast's as the hit payload. Lengths and speeds
+// are world px; turn rates are degrees per second.
 
-type Placement = { at: 'self' | 'aim'; distance?: number }
+export type TargetFilter = 'hostile' | 'friendly' | 'caster'
 
-export interface ProjectileDelivery {
+interface DeliveryBase {
+  attack: AttackDef | null
+  effects: EffectDef[]
+  duration: number
+  tickInterval: number
+  castRange: number
+  placementDistance: number
+  maxInstances: number
+  targetFilter: TargetFilter
+}
+
+export interface ProjectileDelivery extends DeliveryBase {
   delivery: 'projectile'
-  hit: HitDef
   speed: number
   radius: number
-  range: number
-  count?: number // several at once, fanned across `spread` degrees
-  spread?: number
-  pierce?: number // extra targets it passes through
-  homing?: number // degrees per second it turns towards the nearest target
-  /** A burst where it stops, e.g. an explosion. */
-  onImpact?: { hit: HitDef; radius: number }
+  homing: boolean
+  turnRate: number
+  pierce: number
 }
-
-/** An instant burst. */
-export interface AreaDelivery extends Placement {
+export interface AreaDelivery extends DeliveryBase {
   delivery: 'area'
-  hit: HitDef
   radius: number
-  delay?: number // warning time before it goes off
+  atCaster: boolean
+  wallOcclusion: boolean
 }
-
-/** Healing and/or statuses on the caster. */
-export interface SelfDelivery {
+export interface SelfDelivery extends DeliveryBase {
   delivery: 'self'
-  heal?: number
-  statuses?: StatusApplication[]
 }
-
-/** Strikes the nearest target in front of the caster directly. */
-export interface TargetDelivery {
+export interface TargetDelivery extends DeliveryBase {
   delivery: 'target'
-  hit: HitDef
-  range: number
-  arc?: number // how wide in front to look for a target, degrees (default 60)
-  delay?: number
+  requireLineOfSight: boolean
 }
-
-/** A continuous line from the caster, hitting every `interval`. Roots the caster while it lasts. */
-export interface BeamDelivery {
+export interface BeamDelivery extends DeliveryBase {
   delivery: 'beam'
-  hit: HitDef
   length: number
   width: number
-  duration: number
-  interval: number
-  turnRate?: number // degrees per second the caster can steer it
+  turnRate: number
+  movementMultiplier: number
+  piercing: boolean
 }
-
-/** Adds damage and/or statuses to the caster's weapon hits for a while. */
-export interface WeaponImbueDelivery {
+export interface ImbueDelivery extends DeliveryBase {
   delivery: 'weapon-imbue'
-  hit: HitDef
-  duration: number
+  bonusDamage: DamageMap // added to weapon hits, unscaled
+  weaponColour: string
 }
-
-/** An instant hit across a wedge in front of the caster. */
-export interface ConeDelivery {
+export interface ConeDelivery extends DeliveryBase {
   delivery: 'cone'
-  hit: HitDef
-  range: number
-  arc: number
-}
-
-/** An expanding arc travelling outwards from the caster. */
-export interface WaveDelivery {
-  delivery: 'wave'
-  hit: HitDef
-  speed: number
-  range: number
-  arc: number
-  thickness: number
-}
-
-/** A lingering area that hits everything inside every `interval`. */
-export interface GroundZoneDelivery extends Placement {
-  delivery: 'ground-zone'
-  hit: HitDef
   radius: number
-  duration: number
-  interval: number
-  delay?: number
+  angle: number
+  held: boolean // channelled while the button is held, hitting every tick
+  turnRate: number
+  movementMultiplier: number
 }
-
-/** Hits a target, then jumps to the next nearest, and so on. */
-export interface ChainDelivery {
+export interface WaveDelivery extends DeliveryBase {
+  delivery: 'wave'
+  speed: number
+  distance: number
+  width: number
+  thickness: number
+  curvature: number // degrees per second it bends
+}
+export interface GroundZoneDelivery extends DeliveryBase {
+  delivery: 'ground-zone'
+  radius: number
+  initialDelay: number
+}
+export interface ChainDelivery extends DeliveryBase {
   delivery: 'chain'
-  hit: HitDef
-  range: number // reach to the first target
-  jumps: number
-  jumpRange: number
-  falloff?: number // damage multiplier per jump, e.g. 0.8
+  targetCount: number
+  jumpRadius: number
+  jumpDelay: number
+  damageFalloff: number // multiplier per jump
+  requireLineOfSight: boolean
 }
-
-/** Objects circling the caster, hitting what they touch. */
-export interface OrbitingDelivery {
+export interface OrbitingDelivery extends DeliveryBase {
   delivery: 'orbiting'
-  hit: HitDef
   count: number
   orbitRadius: number
-  radius: number
-  speed: number // degrees per second
-  duration: number
-  rehit: number // seconds before the same target can be hit again
+  orbitSpeed: number // degrees per second
+  automatic: boolean // fire at targets by themselves, rather than on the next cast press
+  fireInterval: number
+  child: SpellDelivery
 }
-
-/** Placed on the ground; goes off when an enemy comes close. */
-export interface TrapDelivery extends Placement {
+export interface TrapDelivery extends DeliveryBase {
   delivery: 'trap'
-  hit: HitDef
-  radius: number // blast radius
+  armingDelay: number
   triggerRadius: number
-  armTime: number
-  lifetime: number
+  triggerCount: number
+  rearmInterval: number
+  child: SpellDelivery
 }
-
-/** Many strikes landing at random spots over an area, one after another. */
-export interface BarrageDelivery extends Placement {
+export interface BarrageDelivery extends DeliveryBase {
   delivery: 'barrage'
-  hit: HitDef
   count: number
-  interval: number
-  spread: number // radius of the area they land in
-  radius: number // each strike's radius
-  delay?: number // warning time per strike
+  scatterRadius: number
+  impactRadius: number
+  impactInterval: number
+  telegraphDuration: number
 }
-
-/** Calls an ally to fight alongside the caster. */
-export interface SummonDelivery {
+export interface SummonDef {
+  mobile: boolean
+  health: number
+  defence: Defence | null
+  speed: number
+  followDistance: number
+  acquisitionRange: number
+  attackRange: number
+  attackInterval: number
+  acquisitionInterval: number
+  delivery: SpellDelivery // what it attacks with
+}
+export interface SummonDelivery extends DeliveryBase {
   delivery: 'summon'
-  ally: string // an enemy id from data/enemies, fighting for the caster
   count: number
-  duration: number
+  summon: SummonDef
 }
-
-/** A field around the caster that follows them, hitting nearby enemies every `interval`. */
-export interface AuraDelivery {
+export interface AuraDelivery extends DeliveryBase {
   delivery: 'aura'
-  hit: HitDef
   radius: number
-  duration: number
-  interval: number
 }
-
-/** Moves the caster, optionally hitting everything along the way. */
-export interface DashDelivery {
+export interface DashDelivery extends DeliveryBase {
   delivery: 'dash'
   distance: number
-  duration: number
-  invulnerable?: boolean
-  hit?: HitDef
-  width?: number // hit width along the path
+  steering: number // degrees per second you can steer
+  hitWidth: number
+  invulnerable: boolean
+  invulnerabilityStart: number // fractions of the dash
+  invulnerabilityEnd: number
 }
-
-/** Latches onto the nearest target, hitting every `interval` until it gets too far away. */
-export interface TetherDelivery {
+export interface TetherDelivery extends DeliveryBase {
   delivery: 'tether'
-  hit: HitDef
-  range: number // reach to latch on
   breakRange: number
-  duration: number
-  interval: number
+  lineOfSightGrace: number
+  movementMultiplier: number
+  completionAttack: AttackDef | null // lands if the tether lasts the full duration
+  completionEffects: EffectDef[]
 }
 
 export type SpellDelivery =
@@ -291,7 +312,7 @@ export type SpellDelivery =
   | SelfDelivery
   | TargetDelivery
   | BeamDelivery
-  | WeaponImbueDelivery
+  | ImbueDelivery
   | ConeDelivery
   | WaveDelivery
   | GroundZoneDelivery
@@ -308,62 +329,62 @@ export interface SpellDef {
   id: string
   name: string
   description?: string
-  /** Uses per attunement before Intelligence bonuses (DS1-style charges, no FP). */
+  school: SpellSchool
+  requirements: Requirements
+  /** Basic spells come free with their catalyst: unlimited uses. */
+  basic: boolean
+  /** Uses per run before Intelligence bonuses (DS1-style charges, no FP). */
   charges: number
-  castTime: number
-  recovery: number
-  /** Applies to every damage number in the spell's deliveries. */
-  scaling: Scaling
-  /** All fire together when the cast completes. */
-  deliveries: SpellDelivery[]
-  colour?: string // tint for the effects; defaults to the first damage type's colour
-  art?: SvgArt // projectile sprite, if it shouldn't be a plain glowing orb
+  healthRestore: number
+  staminaRestore: number
+  cast: AttackDef
+  delivery: SpellDelivery
+  colour: string // tint for placeholder visuals
 }
 
 // ---------------------------------------------------------------------------
-// Enemies
+// Characters
 
-export interface EnemyAttackDef extends HitDef {
-  id: string
-  windup: number
-  active: number
-  recovery: number
-  arc: number
-  reach: number
-  cooldown: number
+/** Health, stamina, poise and defence for anything that fights, at reference attributes. */
+export interface VitalsDef {
+  health: number
+  stamina: number
+  referenceLevel: number
+  healthPerVigor: number
+  staminaPerEndurance: number
+  staminaRegeneration: number
+  staminaRegenerationDelay: number
+  poise: number
+  poiseRegeneration: number
+  poiseRegenerationDelay: number
+  staggerDuration: number
+  knockbackDeceleration: number
+  /** Seconds of protection after a hit lands (not counting damage over time). */
+  damageInvulnerability: number
+  defence: Defence
+  statusResistances: Record<string, number> // threshold multipliers by status id
+  statusImmunities: string[]
 }
 
-/** Something a loot roll can produce. Arcane's loot luck weights the rarer entries up. */
-export interface LootEntry {
-  item: { kind: 'weapon'; id: string } | { kind: 'spell'; id: string }
-  weight: number
-  rarity: 'common' | 'uncommon' | 'rare'
-}
-
-export interface EnemyDef {
-  id: string
-  name: string
-  /**
-   * Bosses have fixed difficulty and never scale with run time (GDD §4);
-   * regular enemies scale with both floor and run time.
-   */
-  boss: boolean
-  hp: number
-  radius: number
-  moveSpeed: number
-  /** Damage taken multiplier per type: 0.5 = half damage, 1.5 = weak to it. */
-  resistances?: DamageMap
-  /** Statuses it's immune to. */
-  immune?: string[]
-  behaviour: 'melee-chaser' // grows as behaviours are added
-  attacks: EnemyAttackDef[]
-  runes: number // base runes dropped, before run-time scaling
-  loot?: { chance: number; table: LootEntry[] }
-  art: SvgArt
+export interface MovementDef {
+  walkSpeed: number
+  sprintMultiplier: number
+  acceleration: number
+  deceleration: number
+  sprintStaminaPerSecond: number
+  sprintHoldThreshold: number
+  /** Stamina is only spent in combat; combat lasts this long after the last exchange. */
+  combatExitDelay: number
+  dodgeDuration: number
+  dodgeDistance: number
+  dodgeCooldown: number
+  dodgeCost: number
+  invulnerabilityStart: number // fractions of the roll
+  invulnerabilityEnd: number
+  inputBuffer: number
 }
 
 // Identity helpers: they only exist so content files get full type checking.
-export const defineWeapon = <T extends WeaponDef>(def: T): T => def
+export const defineWeapon = (def: WeaponDef): WeaponDef => def
 export const defineSpell = (def: SpellDef): SpellDef => def
 export const defineStatus = (def: StatusDef): StatusDef => def
-export const defineEnemy = (def: EnemyDef): EnemyDef => def

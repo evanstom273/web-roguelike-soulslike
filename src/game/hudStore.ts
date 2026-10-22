@@ -1,6 +1,14 @@
 // Values the React HUD shows, published by the game scene. Only notifies when
 // something visible changed, so React isn't re-rendering every frame for nothing.
 
+export interface HudStatus {
+  id: string
+  name: string
+  colour: string
+  fill: number // 0..1 of the threshold
+  triggered: boolean // proc'd; on cooldown before it can build again
+}
+
 export interface HudState {
   hp: number
   maxHp: number
@@ -8,14 +16,19 @@ export interface HudState {
   maxStamina: number
   runes: number
   charge: number // 0..1 while charging a heavy attack
-  spellName: string | null // selected spell, if any are attuned
-  spellCharges: number
-  spellMaxCharges: number
+  weaponId: string
+  spellName: string | null // selected spell, if the weapon can cast
+  spellCharges: number // -1 = unlimited (basic spell)
   skillCooldown: number // 0..1 of the cooldown remaining; -1 when the weapon has no skill
-  notice: string | null // short message, e.g. pressing weapon art with no skill
+  inCombat: boolean
+  statuses: HudStatus[]
+  effects: string[]
+  notice: string | null // short message, e.g. "No charges"
 }
 
-const EPSILON: Partial<Record<keyof HudState, number>> = { charge: 0.02, skillCooldown: 0.01 }
+// Round before comparing so tiny per-frame changes don't trigger re-renders.
+const signature = (s: HudState) =>
+  JSON.stringify(s, (key, v) => (typeof v === 'number' ? (key === 'charge' || key === 'skillCooldown' ? Math.round(v * 50) : Math.round(v)) : v))
 
 export class HudStore {
   private state: HudState = {
@@ -25,12 +38,16 @@ export class HudStore {
     maxStamina: 1,
     runes: 0,
     charge: 0,
+    weaponId: '',
     spellName: null,
     spellCharges: 0,
-    spellMaxCharges: 0,
     skillCooldown: -1,
+    inCombat: false,
+    statuses: [],
+    effects: [],
     notice: null,
   }
+  private key = signature(this.state)
   private listeners = new Set<() => void>()
 
   subscribe = (listener: () => void) => {
@@ -41,13 +58,9 @@ export class HudStore {
   getSnapshot = () => this.state
 
   update(next: HudState) {
-    const prev = this.state
-    const changed = (Object.keys(next) as (keyof HudState)[]).some((k) => {
-      const a = prev[k]
-      const b = next[k]
-      return typeof a === 'number' && typeof b === 'number' ? Math.abs(a - b) > (EPSILON[k] ?? 0.25) : a !== b
-    })
-    if (!changed) return
+    const key = signature(next)
+    if (key === this.key) return
+    this.key = key
     this.state = next
     for (const l of this.listeners) l()
   }

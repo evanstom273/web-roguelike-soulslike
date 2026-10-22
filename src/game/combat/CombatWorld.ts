@@ -1,24 +1,36 @@
-import type { HitDef } from '../data/types.ts'
-import type { Combatant } from './Combatant.ts'
+import type { TargetFilter } from '../data/types.ts'
+import type { Segment, Vec } from '../world/floorGeometry.ts'
+import type { Combatant, HitOutcome, HitPayload } from './Combatant.ts'
 
-// Everything that can be hit, with positions, plus the hit shapes attacks and spells use.
-// Each query hits targets on the other team only, and skips any in `already` (so a
-// single swing or projectile hits each target once).
+// Everything that can be hit, where it is, and the line-of-sight / wall queries that
+// attacks and spells use.
 
 export type Team = 'player' | 'enemy'
 
 export interface Target {
-  combatant: Combatant
+  actor: Combatant
   team: Team
   x: number
   y: number
   radius: number
 }
 
-const angleDiff = (a: number, b: number) => Math.atan2(Math.sin(a - b), Math.cos(a - b))
+export interface LandedHit {
+  target: Target
+  payload: HitPayload
+  outcome: HitOutcome
+  recurring: boolean // part of a stream of hits (beams, zones): no hit-stop or shake
+}
 
 export class CombatWorld {
   readonly targets = new Set<Target>()
+  private walls: Segment[]
+  /** Fires for every accepted hit, for feedback (numbers, hit-stop, shake). */
+  onHit: ((hit: LandedHit) => void) | null = null
+
+  constructor(walls: Segment[]) {
+    this.walls = walls
+  }
 
   add(t: Target) {
     this.targets.add(t)
@@ -29,53 +41,82 @@ export class CombatWorld {
     this.targets.delete(t)
   }
 
-  private land(team: Team, hit: HitDef, already: Set<Target> | undefined, test: (t: Target) => boolean): Target[] {
-    const landed: Target[] = []
+  /** Living targets matching the filter, relative to `self`, optionally within a circle. */
+  find(filter: TargetFilter, self: Target, center?: Vec, radius = Infinity): Target[] {
+    const out: Target[] = []
     for (const t of this.targets) {
-      if (t.team === team || t.combatant.dead || already?.has(t) || !test(t)) continue
-      t.combatant.takeHit(hit)
-      already?.add(t)
-      landed.push(t)
+      if (!t.actor.alive) continue
+      if (filter === 'caster' ? t !== self : filter === 'friendly' ? t.team !== self.team : t.team === self.team) continue
+      if (center && Math.hypot(t.x - center.x, t.y - center.y) > radius + t.radius) continue
+      out.push(t)
     }
-    return landed
+    return out
   }
 
-  circle(team: Team, x: number, y: number, r: number, hit: HitDef, already?: Set<Target>) {
-    return this.land(team, hit, already, (t) => Math.hypot(t.x - x, t.y - y) <= r + t.radius)
+  hit(target: Target, payload: HitPayload, recurring = false): HitOutcome {
+    const outcome = target.actor.receive(payload)
+    if (outcome.accepted) this.onHit?.({ target, payload, outcome, recurring })
+    return outcome
   }
 
-  /** A ring segment: between `inner` and `outer` from (x, y), within `arc` radians of `angle`. */
-  sector(team: Team, x: number, y: number, inner: number, outer: number, angle: number, arc: number, hit: HitDef, already?: Set<Target>) {
-    return this.land(team, hit, already, (t) => {
-      const d = Math.hypot(t.x - x, t.y - y)
-      if (d > outer + t.radius || d < inner - t.radius) return false
-      const spread = arc / 2 + (d > 0 ? Math.asin(Math.min(1, t.radius / d)) : Math.PI)
-      return Math.abs(angleDiff(Math.atan2(t.y - y, t.x - x), angle)) <= spread
-    })
-  }
-
-  /** A thick line from (x1, y1) to (x2, y2). */
-  capsule(team: Team, x1: number, y1: number, x2: number, y2: number, width: number, hit: HitDef, already?: Set<Target>) {
-    const dx = x2 - x1
-    const dy = y2 - y1
-    const lenSq = dx * dx + dy * dy || 1
-    return this.land(team, hit, already, (t) => {
-      const u = Math.max(0, Math.min(1, ((t.x - x1) * dx + (t.y - y1) * dy) / lenSq))
-      return Math.hypot(t.x - (x1 + dx * u), t.y - (y1 + dy * u)) <= width / 2 + t.radius
-    })
-  }
-
-  nearest(team: Team, x: number, y: number, maxDistance: number): Target | null {
+  /** Nearest hostile within `radius` of `from`, optionally needing line of sight, skipping `exclude`. */
+  nearestHostile(self: Target, from: Vec, radius: number, sight = true, exclude?: Set<Target>): Target | null {
     let best: Target | null = null
-    let bestD = maxDistance
-    for (const t of this.targets) {
-      if (t.team === team || t.combatant.dead) continue
-      const d = Math.hypot(t.x - x, t.y - y)
-      if (d < bestD) {
+    let bestD = radius
+    for (const t of this.find('hostile', self, from, radius)) {
+      const d = Math.hypot(t.x - from.x, t.y - from.y)
+      if (d <= bestD && !exclude?.has(t) && (!sight || this.visible(from, t))) {
         best = t
         bestD = d
       }
     }
     return best
   }
+
+  /** True if no wall crosses the straight line between the two points. */
+  visible(a: Vec, b: Vec): boolean {
+    return this.wallHit(a, b) === null
+  }
+
+  /** Where a straight line from `a` towards `b` stops at the first wall (or `b`). */
+  wallEnd(a: Vec, b: Vec, backOff = 2): Vec {
+    const t = this.wallHit(a, b)
+    if (t === null) return { x: b.x, y: b.y }
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1
+    const u = Math.max(0, t - backOff / len)
+    return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u }
+  }
+
+  /** True if a circle of `radius` at `p` is clear of walls. */
+  clear(p: Vec, radius: number): boolean {
+    for (const w of this.walls) if (segmentDistance(p, w.a, w.b) < radius) return false
+    return true
+  }
+
+  // Fraction along a->b of the first wall crossing, or null.
+  private wallHit(a: Vec, b: Vec): number | null {
+    let best: number | null = null
+    const rx = b.x - a.x
+    const ry = b.y - a.y
+    for (const w of this.walls) {
+      const sx = w.b.x - w.a.x
+      const sy = w.b.y - w.a.y
+      const denom = rx * sy - ry * sx
+      if (Math.abs(denom) < 1e-9) continue
+      const qx = w.a.x - a.x
+      const qy = w.a.y - a.y
+      const t = (qx * sy - qy * sx) / denom
+      const u = (qx * ry - qy * rx) / denom
+      if (t >= 0 && t <= 1 && u >= 0 && u <= 1 && (best === null || t < best)) best = t
+    }
+    return best
+  }
+}
+
+export function segmentDistance(p: Vec, a: Vec, b: Vec): number {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const lenSq = dx * dx + dy * dy
+  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq))
+  return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t))
 }

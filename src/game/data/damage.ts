@@ -1,26 +1,48 @@
-import { attributeDamageBonus, type AttributeLevels } from './attributes.ts'
-import type { DamageMap, DamageTypeId } from './damageTypes.ts'
-import type { HitDef, Scaling } from './types.ts'
+import type { AttributeLevels } from './attributes.ts'
+import { DAMAGE_TYPE_IDS, type DamageMap } from './damageTypes.ts'
+import type { AttackDef, Defence, MaxHealthDrainDef, Scaling } from './types.ts'
 
-/** Attribute bonus multiplier for an item's scaling: 1 = no bonus. */
-export function scalingMultiplier(scaling: Scaling, levels: AttributeLevels): number {
-  let bonus = 0
-  for (const [attribute, coefficient] of Object.entries(scaling) as [keyof AttributeLevels, number][]) {
-    bonus += coefficient * attributeDamageBonus(levels[attribute])
+// The damage formula, ported from the Godot version:
+//   power = sum over types of damage * (1 - defence% / 100)
+//   power *= attribute scaling multiplier * upgrade multiplier
+//   power += unscaled bonus (weapon imbues), after defence
+//   rounded once at the end.
+
+export function scalingMultiplier(scaling: Scaling | null, levels: AttributeLevels | null): number {
+  if (!scaling || !levels) return 1
+  let m = 1
+  for (const [attr, per] of Object.entries(scaling.per) as [keyof AttributeLevels, number][]) {
+    m += Math.max(0, levels[attr] - scaling.referenceLevel) * per
   }
-  return 1 + bonus
+  return m
 }
 
-export function scaleDamage(damage: DamageMap, multiplier: number): DamageMap {
-  const out: DamageMap = {}
-  for (const [type, amount] of Object.entries(damage) as [DamageTypeId, number][]) out[type] = amount * multiplier
-  return out
+export function mitigated(damage: DamageMap, defence: Defence | null): number {
+  let total = 0
+  for (const t of DAMAGE_TYPE_IDS) total += (damage[t] ?? 0) * (1 - (defence?.[t] ?? 0) / 100)
+  return total
 }
 
-/** A hit with the wielder's attribute bonuses baked in, ready to land. */
-export const resolveHit = (hit: HitDef, multiplier: number): HitDef => ({
-  damage: scaleDamage(hit.damage, multiplier),
-  statuses: hit.statuses,
-})
+export const totalDamage = (damage: DamageMap) => DAMAGE_TYPE_IDS.reduce((t, k) => t + (damage[k] ?? 0), 0)
 
-export const totalDamage = (damage: DamageMap) => Object.values(damage).reduce((t, n) => t + (n ?? 0), 0)
+export interface DamageContext {
+  levels: AttributeLevels | null // the attacker's
+  multiplier?: number // upgrades, chain falloff
+  bonus?: DamageMap | null // unscaled extra, e.g. a weapon imbue
+}
+
+export function healthDamage(attack: AttackDef, ctx: DamageContext, defence: Defence | null): number {
+  let power = mitigated(attack.damage, defence) * scalingMultiplier(attack.scaling, ctx.levels) * (ctx.multiplier ?? 1)
+  if (ctx.bonus) power += mitigated(ctx.bonus, defence)
+  return Math.max(0, Math.round(power))
+}
+
+// Max-HP burn: total fraction and duration grow with Intelligence along a log curve.
+function drainProgress(d: MaxHealthDrainDef, level: number) {
+  const x = Math.min(1, Math.max(0, (level - d.startingLevel) / Math.max(1, d.levelCap - d.startingLevel)))
+  return Math.log(1 + d.curvature * x) / Math.log(1 + d.curvature)
+}
+export const drainFraction = (d: MaxHealthDrainDef, level: number) =>
+  d.startingFraction + (d.cappedFraction - d.startingFraction) * drainProgress(d, level)
+export const drainDuration = (d: MaxHealthDrainDef, level: number) =>
+  d.startingDuration + (d.cappedDuration - d.startingDuration) * drainProgress(d, level)
