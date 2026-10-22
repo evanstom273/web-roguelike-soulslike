@@ -11,12 +11,14 @@ export default defineWeapon({
   requirements: {},
   art: {
     url: artUrl,
-    width: 164,
-    height: 24,
+    width: 123,
+    height: 18,
     grip: {
-      x: 82,
-      y: 12,
+      x: 61.5,
+      y: 9,
     },
+    // Held diagonally across the front so the back blade clears the body.
+    rest: -40,
   },
   light: {
     name: 'Twinblade whirl',

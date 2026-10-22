@@ -11,11 +11,11 @@ export default defineWeapon({
   requirements: {},
   art: {
     url: artUrl,
-    width: 78,
-    height: 14,
+    width: 58.5,
+    height: 10.5,
     grip: {
-      x: 10,
-      y: 7,
+      x: 7.5,
+      y: 5.25,
     },
   },
   light: {
