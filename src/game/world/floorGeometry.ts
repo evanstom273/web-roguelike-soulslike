@@ -5,7 +5,7 @@ import { hexCorners, hexKey, hexToPixel, type Hex } from '../dungeon/hex.ts'
 // segments to collide with. 1 unit = 1 world pixel.
 
 export const CELL_SIZE = 480 // hex circumradius; each hex side is this long too
-export const HALLWAY_WIDTH = 180
+export const HALLWAY_WIDTH = 120
 
 export interface Vec {
   x: number
