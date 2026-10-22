@@ -6,7 +6,9 @@ import type { SpellDef, WeaponDef } from '../data/types.ts'
 // attribute levels (bought on the post-death screen) and equipment.
 export interface Character {
   levels: AttributeLevels
-  weaponIds: string[] // right-hand slots, cycled in order
+  weaponIds: string[] // everything owned; either hand can hold any of them
+  right: string
+  left: string | null // null = empty-handed
   spellIds: string[] // attuned spells, cycled in order (basic spells come with catalysts)
 }
 
@@ -14,16 +16,21 @@ export interface Loadout {
   levels: AttributeLevels
   stats: DerivedStats
   weapons: WeaponDef[]
+  right: WeaponDef
+  left: WeaponDef | null
   spells: SpellDef[]
 }
 
 /**
  * Starting equipment isn't decided yet (GDD §7). Until there's an equipment screen,
- * the player carries every weapon and every spell so all of them can be tried out.
+ * the player owns every weapon and spell so all of them can be tried out, starting
+ * with a sword in the right hand and a shield in the left.
  */
 export const startingCharacter = (): Character => ({
   levels: baseLevels(),
-  weaponIds: ['straight-sword', 'wand', ...[...WEAPONS.keys()].filter((id) => id !== 'straight-sword' && id !== 'wand' && id !== 'shield').sort()],
+  weaponIds: ['straight-sword', 'wand', 'shield', ...[...WEAPONS.keys()].filter((id) => !['straight-sword', 'wand', 'shield'].includes(id)).sort()],
+  right: 'straight-sword',
+  left: 'shield',
   spellIds: [...SPELLS.values()].filter((s) => !s.basic).map((s) => s.id).sort(),
 })
 
@@ -33,6 +40,8 @@ export function resolveLoadout(c: Character): Loadout {
     levels: c.levels,
     stats: deriveStats(c.levels),
     weapons: c.weaponIds.map(getWeapon),
+    right: getWeapon(c.right),
+    left: c.left ? getWeapon(c.left) : null,
     spells: [...basics, ...c.spellIds.map(getSpell)],
   }
 }

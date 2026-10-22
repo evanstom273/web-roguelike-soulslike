@@ -57,7 +57,7 @@ export function GameView({ seed, character, onQuit }: { seed: string; character:
 
       {!touch && (
         <p className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 text-center text-[0.6rem] tracking-[0.2em] text-dim uppercase">
-          WASD move · Space roll (hold to sprint) · J / LMB light or cast · K / RMB heavy (hold to charge) · L / F skill · Tab / MMB lock on · E weapon · Q spell · Esc quit
+          WASD move · Space roll (hold to sprint) · J / LMB light or cast · K / RMB heavy (hold to charge) · U left hand · L / F skill · Tab / MMB lock on · E / R right / left weapon · Q spell · Esc quit
         </p>
       )}
     </main>

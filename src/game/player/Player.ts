@@ -18,27 +18,35 @@ export interface PlayerIntent {
   pressed: Set<ActionButton>
   lightHeld: boolean
   heavyHeld: boolean
+  leftHeld: boolean
   rollHeld: boolean
   cycleWeapon: boolean
+  cycleLeftWeapon: boolean
   cycleSpell: boolean
   lock: boolean
 }
 
 type SwingKind = 'light' | 'heavy' | 'charged' | 'skill'
+export type Hand = 'right' | 'left'
+const other = (h: Hand): Hand => (h === 'right' ? 'left' : 'right')
 
 type State =
   | { kind: 'free' }
   | { kind: 'roll'; t: number; dir: number }
   | { kind: 'heavyHold'; t: number } // heavy pressed; becomes a charge if held long enough
   | { kind: 'charging'; t: number }
-  | { kind: 'swing'; t: number; swing: SwingKind; attack: AttackDef; side: 1 | -1; hits: Set<Target> }
-  | { kind: 'cast'; t: number; spell: SpellDef; released: boolean }
+  | { kind: 'swing'; t: number; swing: SwingKind; attack: AttackDef; side: 1 | -1; hits: Set<Target>; hand: Hand }
+  | { kind: 'cast'; t: number; spell: SpellDef; released: boolean; hand: Hand }
   | { kind: 'channel' } // a beam / tether / held cone is running
   | { kind: 'dash' } // a dash spell is moving us
 
 const RADIUS = 20 // collision circle
-const HAND = { x: 14.5, y: 11.5 } // weapon hand relative to body centre, facing +x
-const REST_ANGLE = 0.5 // weapon angle when idle, radians from facing
+// Each hand relative to body centre (facing +x), and the angle its weapon rests at.
+const HANDS: Record<Hand, { x: number; y: number; rest: number }> = {
+  right: { x: 14.5, y: 11.5, rest: 0.5 },
+  left: { x: 12.5, y: -11.5, rest: -0.5 },
+}
+const REST_ANGLE = HANDS.right.rest
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const degToRad = (d: number) => (d * Math.PI) / 180
@@ -52,7 +60,8 @@ export class Player implements Caster {
   readonly maxStamina: number
   stamina: number
   notice: { text: string; until: number } | null = null
-  weaponIndex = 0
+  rightId: string
+  leftId: string | null
   spellIndex = 0
   /** Remaining uses per attuned spell id (basic spells don't use charges). */
   readonly charges = new Map<string, number>()
@@ -74,11 +83,15 @@ export class Player implements Caster {
   private rollDownAt: number | null = null
   private sprinting = false
   private exhausted = false
-  private lastAttackAt = { light: -Infinity, heavy: -Infinity }
+  private lastAttackAt = { light: -Infinity, heavy: -Infinity, left: -Infinity }
   private skillReadyAt = 0
   private dashInvulnerable = false
-  private imbueState: { bonus: DamageMap; remaining: number; colour: string } | null = null
+  /** Weapon imbues, per hand. */
+  private imbues: Record<Hand, { bonus: DamageMap; remaining: number; colour: string } | null> = { right: null, left: null }
   private lightHeld = false
+  private leftHeld = false
+  /** The hand the current / last spell was cast from. */
+  private castHand: Hand = 'right'
   /** Locked-on target: you face it, and attacks and spells aim at it. */
   lockedTarget: Target | null = null
   /** Targets in the order they were in when lock-on started, for stepping through. */
@@ -86,7 +99,7 @@ export class Player implements Caster {
 
   private root: Phaser.GameObjects.Container
   private body: Phaser.GameObjects.Image
-  private weaponImage: Phaser.GameObjects.Image
+  private weaponImages: Record<Hand, Phaser.GameObjects.Image>
   private fx: Phaser.GameObjects.Graphics
   private trail: { x: number; y: number; age: number }[] = []
   private trailGfx: Phaser.GameObjects.Graphics
@@ -116,18 +129,34 @@ export class Player implements Caster {
 
     this.trailGfx = scene.add.graphics().setDepth(9)
     this.fx = scene.add.graphics().setDepth(11)
-    this.weaponImage = scene.add.image(HAND.x, HAND.y, weaponTextureKey(this.weapon.id))
+    this.rightId = loadout.right.id
+    this.leftId = loadout.left?.id ?? null
+    this.weaponImages = {
+      right: scene.add.image(HANDS.right.x, HANDS.right.y, weaponTextureKey(loadout.right.id)),
+      left: scene.add.image(HANDS.left.x, HANDS.left.y, weaponTextureKey(loadout.right.id)),
+    }
     this.body = scene.add.image(0, 0, 'player')
-    this.root = scene.add.container(this.x, this.y, [this.weaponImage, this.body]).setDepth(10)
-    this.showWeapon()
+    this.root = scene.add.container(this.x, this.y, [this.weaponImages.right, this.weaponImages.left, this.body]).setDepth(10)
+    this.showWeapon('right')
+    this.showWeapon('left')
   }
 
   get levels() {
     return this.loadout.levels
   }
 
+  /** The right-hand weapon. */
   get weapon(): WeaponDef {
-    return this.loadout.weapons[this.weaponIndex]
+    return this.held('right')!
+  }
+
+  get leftWeapon(): WeaponDef | null {
+    return this.held('left')
+  }
+
+  private held(hand: Hand): WeaponDef | null {
+    const id = hand === 'right' ? this.rightId : this.leftId
+    return this.loadout.weapons.find((w) => w.id === id) ?? null
   }
 
   get hp() {
@@ -162,13 +191,15 @@ export class Player implements Caster {
     return Math.max(0, this.skillReadyAt - this.time) / skill.cooldown
   }
 
-  /** Spells usable with the current weapon: its basic spell, then attuned spells of a school it casts. */
+  /** Spells usable with either hand's catalyst: their basic spells, then attuned spells of a school one casts. */
   get castableSpells(): SpellDef[] {
-    const cat = this.weapon.catalyst
-    if (!cat) return []
-    const basic = this.loadout.spells.filter((s) => s.basic && s.id === cat.basicSpell)
-    const attuned = this.loadout.spells.filter((s) => !s.basic && (cat.schools.length === 0 || cat.schools.includes(s.school)))
-    return [...basic, ...attuned]
+    return this.loadout.spells.filter((s) => this.canCastWith('right', s) || this.canCastWith('left', s))
+  }
+
+  private canCastWith(hand: Hand, spell: SpellDef) {
+    const cat = this.held(hand)?.catalyst
+    if (!cat) return false
+    return spell.basic ? spell.id === cat.basicSpell : cat.schools.length === 0 || cat.schools.includes(spell.school)
   }
 
   get selectedSpell(): SpellDef | null {
@@ -210,7 +241,7 @@ export class Player implements Caster {
   }
 
   channelHeld() {
-    return this.lightHeld
+    return this.castHand === 'left' ? this.leftHeld : this.lightHeld
   }
 
   dashMove(dx: number, dy: number) {
@@ -223,8 +254,9 @@ export class Player implements Caster {
     this.dashInvulnerable = on
   }
 
+  /** Imbues the weapon in the hand opposite the one that cast it (as in the Godot version). */
   imbue(bonus: DamageMap, duration: number, colour: string) {
-    this.imbueState = { bonus, remaining: duration, colour }
+    this.imbues[other(this.castHand)] = { bonus, remaining: duration, colour }
   }
 
   /** Call when an enemy engages or lands a hit, so stamina costs apply. */
@@ -237,14 +269,19 @@ export class Player implements Caster {
   update(dt: number, intent: PlayerIntent) {
     this.time += dt
     this.lightHeld = intent.lightHeld
+    this.leftHeld = intent.leftHeld
     this.combatTime = Math.max(0, this.combatTime - dt)
     this.dodgeCooldown = Math.max(0, this.dodgeCooldown - dt)
     this.regenDelay = Math.max(0, this.regenDelay - dt)
-    if (this.imbueState && (this.imbueState.remaining -= dt) <= 0) this.imbueState = null
+    for (const h of ['right', 'left'] as const) {
+      const im = this.imbues[h]
+      if (im && (im.remaining -= dt) <= 0) this.imbues[h] = null
+    }
     this.actor.update(dt)
 
     if (this.state.kind === 'free') {
-      if (intent.cycleWeapon) this.cycleWeapon()
+      if (intent.cycleWeapon) this.cycleWeapon('right')
+      if (intent.cycleLeftWeapon) this.cycleWeapon('left')
       if (intent.cycleSpell) this.cycleSpell()
     }
     if (intent.lock) this.toggleLock()
@@ -252,7 +289,7 @@ export class Player implements Caster {
 
     for (const button of intent.pressed) {
       if (button === 'roll') this.rollDownAt = this.time
-      else if (button !== 'weapon' && button !== 'spell' && button !== 'lock') this.buffered = { button, at: this.time } // these aren't actions
+      else if (!['weapon', 'leftWeapon', 'spell', 'lock'].includes(button)) this.buffered = { button, at: this.time } // these aren't actions
     }
     // Roll fires when a short press is released; a long hold sprints instead.
     const rollHeldFor = this.rollDownAt === null ? 0 : this.time - this.rollDownAt
@@ -420,9 +457,10 @@ export class Player implements Caster {
       this.startSwing('skill', w.skill.attack)
       return true
     }
+    if (b.button === 'left') return this.leftAction()
     if (b.button === 'light' && w.catalyst) {
       this.buffered = null
-      return this.beginCast()
+      return this.beginCast('right')
     }
     if (b.button === 'heavy' && w.catalyst) {
       this.buffered = null // catalysts have no heavy attack
@@ -443,11 +481,34 @@ export class Player implements Caster {
     return true
   }
 
-  private startSwing(swing: SwingKind, attack: AttackDef) {
+  /** The left hand's attack: a light attack, or a cast if it holds a catalyst. */
+  private leftAction(): boolean {
+    const w = this.leftWeapon
+    if (!w) {
+      this.buffered = null
+      return false
+    }
+    if (w.catalyst) {
+      this.buffered = null
+      return this.beginCast('left')
+    }
+    if (!meetsRequirements(this.levels, w.requirements)) {
+      this.buffered = null
+      return this.say('Requirements not met'), false
+    }
+    if (this.time - this.lastAttackAt.left < w.cooldown.light) return false // stays buffered
+    this.buffered = null
+    if (!this.canSpend(w.light.stamina)) return this.say('Catch your breath'), false
+    this.startSwing('light', w.light, 'left')
+    return true
+  }
+
+  private startSwing(swing: SwingKind, attack: AttackDef, hand: Hand = 'right') {
     this.spendStamina(attack.stamina, false) // melee doesn't delay regen
-    if (swing === 'light') this.lastAttackAt.light = this.time
+    if (swing === 'light' && hand === 'right') this.lastAttackAt.light = this.time
+    if (swing === 'light' && hand === 'left') this.lastAttackAt.left = this.time
     if (swing === 'heavy' || swing === 'charged') this.lastAttackAt.heavy = this.time
-    this.state = { kind: 'swing', t: 0, swing, attack, side: this.nextSide, hits: new Set() }
+    this.state = { kind: 'swing', t: 0, swing, attack, side: this.nextSide, hits: new Set(), hand }
     this.nextSide = this.nextSide === 1 ? -1 : 1
   }
 
@@ -465,13 +526,15 @@ export class Player implements Caster {
       if (len > 1e-6 && (Math.cos(this.facing) * ox + Math.sin(this.facing) * oy) / len < Math.cos(degToRad(a.arc / 2))) continue
       if (!this.world.visible(this, t)) continue
       s.hits.add(t)
-      this.world.hit(t, { attack: a, ctx: { levels: this.levels, bonus: this.imbueState?.bonus ?? null } })
+      this.world.hit(t, { attack: a, ctx: { levels: this.levels, bonus: this.imbues[s.hand]?.bonus ?? null } })
     }
   }
 
-  private beginCast(): boolean {
+  private beginCast(hand: Hand): boolean {
     const spell = this.selectedSpell
     if (!spell) return this.say('No spell'), false
+    if (!this.canCastWith(hand, spell)) return this.say(`Can't cast that with the ${hand} hand`), false
+    this.castHand = hand
     if (this.spells.command(spell)) return true // fire orbiting shards that are waiting
     if (!meetsRequirements(this.levels, spell.requirements)) return this.say('Requirements not met'), false
     if (!spell.basic && (this.charges.get(spell.id) ?? 0) <= 0) return this.say('No charges'), false
@@ -485,7 +548,7 @@ export class Player implements Caster {
     }
     this.spendStamina(spell.cast.stamina)
     if (!spell.basic) this.charges.set(spell.id, (this.charges.get(spell.id) ?? 0) - 1)
-    this.state = { kind: 'cast', t: 0, spell, released: false }
+    this.state = { kind: 'cast', t: 0, spell, released: false, hand }
     return true
   }
 
@@ -537,12 +600,19 @@ export class Player implements Caster {
     return best
   }
 
-  private cycleWeapon() {
-    if (this.loadout.weapons.length < 2) return
-    this.weaponIndex = (this.weaponIndex + 1) % this.loadout.weapons.length
+  /** Next weapon for a hand, skipping whatever the other hand holds. The left hand can also be empty. */
+  private cycleWeapon(hand: Hand) {
+    const otherId = hand === 'right' ? this.leftId : this.rightId
+    const options: (string | null)[] = [...(hand === 'left' ? [null] : []), ...this.loadout.weapons.map((w) => w.id).filter((id) => id !== otherId)]
+    if (options.length < 2) return
+    const current = hand === 'right' ? this.rightId : this.leftId
+    const next = options[(options.indexOf(current) + 1) % options.length]
+    if (hand === 'right') this.rightId = next!
+    else this.leftId = next
+    this.imbues[hand] = null
     this.spellIndex = 0
-    this.showWeapon()
-    this.say(this.weapon.name)
+    this.showWeapon(hand)
+    this.say(`${hand === 'right' ? 'Right' : 'Left'}: ${this.held(hand)?.name ?? 'empty'}`)
   }
 
   private cycleSpell() {
@@ -552,9 +622,11 @@ export class Player implements Caster {
     this.say(this.selectedSpell!.name)
   }
 
-  private showWeapon() {
-    const w = this.weapon
-    this.weaponImage.setTexture(weaponTextureKey(w.id)).setOrigin(w.art.grip.x / w.art.width, w.art.grip.y / w.art.height)
+  private showWeapon(hand: Hand) {
+    const w = this.held(hand)
+    const img = this.weaponImages[hand]
+    img.setVisible(!!w)
+    if (w) img.setTexture(weaponTextureKey(w.id)).setOrigin(w.art.grip.x / w.art.width, w.art.grip.y / w.art.height)
   }
 
   /** Walking with the Godot version's acceleration and braking. */
@@ -622,23 +694,31 @@ export class Player implements Caster {
       this.trailGfx.fillCircle(g.x, g.y, RADIUS + 2)
     }
 
-    if (this.imbueState) this.weaponImage.setTint(parseInt(this.imbueState.colour.slice(1), 16))
-    else this.weaponImage.clearTint()
+    for (const h of ['right', 'left'] as const) {
+      const im = this.imbues[h]
+      if (im) this.weaponImages[h].setTint(parseInt(im.colour.slice(1), 16))
+      else this.weaponImages[h].clearTint()
+    }
 
     let weaponAngle = REST_ANGLE
+    let leftAngle = HANDS.left.rest
     if (this.state.kind === 'heavyHold' || this.state.kind === 'charging') {
       const pull = this.state.kind === 'charging' ? 1 : Math.min(1, this.state.t / this.weapon.heavy.chargeThreshold)
       weaponAngle = REST_ANGLE + pull * 1.9
       if (this.state.kind === 'charging') this.drawChargeGlow()
     } else if (this.state.kind === 'swing') {
-      weaponAngle = this.swingAngle(this.state)
+      if (this.state.hand === 'right') weaponAngle = this.swingAngle(this.state)
+      else leftAngle = this.swingAngle(this.state)
       this.drawSwingArc(this.state)
     } else if (this.state.kind === 'cast' || this.state.kind === 'channel') {
       const t = this.state.kind === 'cast' ? Math.min(1, this.state.t / Math.max(0.01, this.state.spell.cast.windup)) : 1
-      weaponAngle = lerp(REST_ANGLE, -0.15, t)
+      const raised = lerp(HANDS[this.castHand].rest, HANDS[this.castHand].rest * -0.3, t)
+      if (this.castHand === 'right') weaponAngle = raised
+      else leftAngle = raised
       if (this.state.kind === 'cast' && !this.state.released) this.drawCastGlow(t, this.state.spell.colour)
     }
-    this.weaponImage.setRotation(weaponAngle)
+    this.weaponImages.right.setRotation(weaponAngle)
+    this.weaponImages.left.setRotation(leftAngle)
   }
 
   private swingAngle(s: Extract<State, { kind: 'swing' }>) {
@@ -646,7 +726,7 @@ export class Player implements Caster {
     const start = s.side * half
     const end = -s.side * half
     const { windup, active } = s.attack
-    if (s.t < windup) return lerp(REST_ANGLE, start, easeOut(s.t / windup))
+    if (s.t < windup) return lerp(HANDS[s.hand].rest, start, easeOut(s.t / windup))
     if (s.t < windup + active) return lerp(start, end, easeOut((s.t - windup) / active))
     return end
   }
@@ -660,7 +740,8 @@ export class Player implements Caster {
     if (fade <= 0) return
     const from = this.facing + s.side * half
     const to = from - s.side * 2 * half * easeOut(progress)
-    const colour = this.imbueState ? parseInt(this.imbueState.colour.slice(1), 16) : s.swing === 'charged' || s.swing === 'skill' ? 0xff3d8b : 0xbff8ff
+    const im = this.imbues[s.hand]
+    const colour = im ? parseInt(im.colour.slice(1), 16) : s.swing === 'charged' || s.swing === 'skill' ? 0xff3d8b : 0xbff8ff
     const thickness = s.swing === 'light' ? 10 : s.swing === 'heavy' ? 16 : 22
     this.fx.lineStyle(thickness, colour, 0.35 * fade)
     this.fx.beginPath()
@@ -672,11 +753,12 @@ export class Player implements Caster {
     this.fx.strokePath()
   }
 
-  private weaponTip(angleFromFacing: number, length: number) {
+  private weaponTip(angleFromFacing: number, length: number, hand: Hand = 'right') {
     const a = this.facing + angleFromFacing
+    const h = HANDS[hand]
     return {
-      x: this.x + Math.cos(this.facing) * HAND.x - Math.sin(this.facing) * HAND.y + Math.cos(a) * length,
-      y: this.y + Math.sin(this.facing) * HAND.x + Math.cos(this.facing) * HAND.y + Math.sin(a) * length,
+      x: this.x + Math.cos(this.facing) * h.x - Math.sin(this.facing) * h.y + Math.cos(a) * length,
+      y: this.y + Math.sin(this.facing) * h.x + Math.cos(this.facing) * h.y + Math.sin(a) * length,
     }
   }
 
@@ -691,8 +773,9 @@ export class Player implements Caster {
   }
 
   private drawCastGlow(progress: number, colour: string) {
-    const art = this.weapon.art
-    const tip = this.weaponTip(-0.15, art.width - art.grip.x)
+    const hand = this.castHand
+    const art = (this.held(hand) ?? this.weapon).art
+    const tip = this.weaponTip(HANDS[hand].rest * -0.3, art.width - art.grip.x, hand)
     this.fx.fillStyle(parseInt(colour.slice(1), 16), 0.2 + 0.4 * progress)
     this.fx.fillCircle(tip.x, tip.y, 4 + 10 * progress)
   }

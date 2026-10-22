@@ -75,7 +75,7 @@ export class RunScene extends Phaser.Scene {
     this.scale.on('resize', this.fitCamera, this)
 
     const kb = this.input.keyboard!
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,F,Q,E,TAB') as Record<string, Phaser.Input.Keyboard.Key>
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,F,Q,E,R,U,TAB') as Record<string, Phaser.Input.Keyboard.Key>
     this.input.mouse?.disableContextMenu()
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.wasTouch) return // touch has its own on-screen buttons
@@ -131,6 +131,8 @@ export class RunScene extends Phaser.Scene {
     if (JustDown(k.L) || JustDown(k.F)) pressed.add('art')
     if (JustDown(k.E)) pressed.add('weapon')
     if (JustDown(k.Q)) pressed.add('spell')
+    if (JustDown(k.U)) pressed.add('left')
+    if (JustDown(k.R)) pressed.add('leftWeapon')
     if (JustDown(k.TAB)) pressed.add('lock')
 
     let mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0)
@@ -151,8 +153,10 @@ export class RunScene extends Phaser.Scene {
       pressed,
       lightHeld: k.J.isDown || (mouse && pointer.leftButtonDown()) || input.isTouchHeld('light'),
       heavyHeld: k.K.isDown || (mouse && pointer.rightButtonDown()) || input.isTouchHeld('heavy'),
+      leftHeld: k.U.isDown || input.isTouchHeld('left'),
       rollHeld: k.SPACE.isDown || input.isTouchHeld('roll'),
       cycleWeapon: pressed.has('weapon'),
+      cycleLeftWeapon: pressed.has('leftWeapon'),
       cycleSpell: pressed.has('spell'),
       lock: pressed.has('lock'),
     }
@@ -176,6 +180,7 @@ export class RunScene extends Phaser.Scene {
       runes: 0,
       charge: p.charge,
       weaponId: p.weapon.id,
+      leftWeaponId: p.leftWeapon?.id ?? null,
       spellName: spell?.name ?? null,
       spellCharges: spell ? (spell.basic ? -1 : (p.charges.get(spell.id) ?? 0)) : 0,
       skillCooldown: p.skillCooldown ?? -1,
