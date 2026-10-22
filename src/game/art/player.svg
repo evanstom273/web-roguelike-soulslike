@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="64" height="64">
-  <!-- Warrior mockup, strictly top-down, facing +x, light from the top-left. Drawn on a 96 grid, loaded at 64 px so the gauntlets sit on the hand positions. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <!-- Warrior mockup, strictly top-down, facing +x, light from the top-left. 1 unit = 1 world px. -->
   <defs>
     <radialGradient id="g-shadow" cx="50%" cy="50%" r="50%">
       <stop offset="0" stop-color="#000" stop-opacity="0.45"/>
