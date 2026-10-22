@@ -96,7 +96,9 @@ export class RunScene extends Phaser.Scene {
     const pointer = this.input.activePointer
     const heavyHeld = k.K.isDown || (!pointer.wasTouch && pointer.rightButtonDown()) || input.isTouchHeld('heavy')
 
-    this.player.update(dt, { move: { x: mx, y: my }, pressed, heavyHeld })
+    const rollHeld = k.SPACE.isDown || input.isTouchHeld('roll')
+
+    this.player.update(dt, { move: { x: mx, y: my }, pressed, heavyHeld, rollHeld })
     this.playerAnchor.x = this.player.x
     this.playerAnchor.y = this.player.y
 

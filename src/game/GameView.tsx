@@ -54,7 +54,7 @@ export function GameView({ seed, onQuit }: { seed: string; onQuit: () => void })
 
       {!touch && (
         <p className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 text-center text-[0.6rem] tracking-[0.2em] text-dim uppercase">
-          WASD move · Space roll · J / LMB light · K / RMB heavy (hold to charge) · L / F skill · Esc quit
+          WASD move · Space roll (hold to sprint) · J / LMB light · K / RMB heavy (hold to charge) · L / F skill · Esc quit
         </p>
       )}
     </main>

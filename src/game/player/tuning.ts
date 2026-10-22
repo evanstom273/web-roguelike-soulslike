@@ -12,6 +12,13 @@ export const PLAYER = {
   inputBuffer: 0.25, // how early a press is remembered before the current action can take it
 }
 
+// Like Elden Ring: tap the roll button to roll (on release), hold it to sprint.
+export const SPRINT = {
+  holdThreshold: 0.22, // holding roll longer than this sprints instead of rolling
+  speed: 360,
+  stamina: 24, // per second while sprinting
+}
+
 export const ROLL = {
   stamina: 18,
   duration: 0.42,
@@ -33,6 +40,13 @@ export interface SwingTuning {
 export const LIGHT: SwingTuning = { stamina: 12, windup: 0.1, active: 0.12, recovery: 0.24, lunge: 22, arc: 120, reach: 92 }
 export const HEAVY: SwingTuning = { stamina: 24, windup: 0.34, active: 0.16, recovery: 0.42, lunge: 34, arc: 160, reach: 108 }
 export const CHARGED: SwingTuning = { stamina: 32, windup: 0.06, active: 0.2, recovery: 0.5, lunge: 50, arc: 200, reach: 128 }
+
+// Minimum time between the starts of two attacks of the same kind, so they can't be spammed.
+// Charged attacks share the heavy cooldown.
+export const COOLDOWN = {
+  light: 0.6,
+  heavy: 1.2,
+}
 
 export const CHARGE = {
   holdToCharge: 0.22, // holding heavy longer than this starts a charged attack
