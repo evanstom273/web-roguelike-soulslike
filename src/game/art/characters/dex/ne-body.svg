@@ -32,6 +32,9 @@
     <path d="M63 80 L73 80 L73 88 C70 90.5 66 90.5 63 88 Z" fill="#2c1d10"/>
     <path d="M64.5 84 L71.5 84" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
     <path d="M42 40 C40 50 40 62 42 76 L38 74 L37 80 C34 66 35 52 38 42 Z" fill="url(#scarfG)" stroke="#0b1d1f"/>
+    <path d="M33 32 C30 38 26 44 25 50 C34 54 58 54 67 50 C66 44 62 38 59 32 Z" fill="url(#hoodG)"/>
+    <path d="M26 49.5 C34 53.5 58 53.5 66 49.5" stroke="#3f8a8a" stroke-width="1.2" stroke-opacity="0.7" fill="none"/>
+    <path d="M38 40 C36 44 34 48 33 51 M54 40 C56 44 58 48 59 51" stroke="#0d0a07" stroke-width="0.8" stroke-opacity="0.5" fill="none"/>
     <path d="M33 34 C31 22 37 9 47 8 C57 8.5 61 20 59 34 C54 40 38 40 33 34 Z" fill="url(#hoodG)"/>
     <path d="M36 30 C35 21 39 13 45 11" stroke="#8a7a62" stroke-width="1" stroke-opacity="0.5" fill="none"/>
     <path d="M46 9 C47 18 46 28 45 38" stroke="#0d0a07" stroke-width="1" stroke-opacity="0.6" fill="none"/>
