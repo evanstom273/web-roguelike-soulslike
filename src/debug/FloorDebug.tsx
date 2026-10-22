@@ -232,7 +232,7 @@ export function FloorDebug({ onBack }: { onBack: () => void }) {
           <span className="text-neon">S</span> start
         </span>
         <span>
-          <span className="text-hazard">B</span> boss (furthest room)
+          <span className="text-hazard">B</span> boss (big, dead end)
         </span>
         <span>
           <span style={{ color: LOOP_HALLWAY }}>━</span> loop hallway
