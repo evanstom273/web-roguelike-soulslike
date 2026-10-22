@@ -1,4 +1,5 @@
 import { baseLevels, deriveStats, type AttributeLevels, type DerivedStats } from '../data/attributes.ts'
+import type { ClassDef } from '../data/classes.ts'
 import { getSpell, getWeapon, SPELLS, WEAPONS } from '../data/registry.ts'
 import type { SpellDef, WeaponDef } from '../data/types.ts'
 
@@ -32,6 +33,15 @@ export const startingCharacter = (): Character => ({
   right: 'straight-sword',
   left: 'shield',
   spellIds: [...SPELLS.values()].filter((s) => !s.basic).map((s) => s.id).sort(),
+})
+
+/** A fresh character of the given class, wearing its starting kit. */
+export const classCharacter = (c: ClassDef): Character => ({
+  levels: { ...c.levels },
+  weaponIds: [...c.weaponIds],
+  right: c.right,
+  left: c.left,
+  spellIds: [...c.spellIds],
 })
 
 export function resolveLoadout(c: Character): Loadout {
