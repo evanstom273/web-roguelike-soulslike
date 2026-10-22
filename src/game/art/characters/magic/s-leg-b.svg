@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 128" width="96" height="128">
+  <!-- magic, facing s: leg-b. Feet at (48, 118). -->
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c3c7cb"/><stop offset="0.45" stop-color="#7f8489"/><stop offset="1" stop-color="#3a3e42"/></linearGradient>
+    <linearGradient id="steelD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d9297"/><stop offset="1" stop-color="#2b2e32"/></linearGradient>
+    <linearGradient id="helmG" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="#d2d6d9"/><stop offset="0.5" stop-color="#868b90"/><stop offset="1" stop-color="#34373b"/></linearGradient>
+    <linearGradient id="capeG" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#8e1f1c"/><stop offset="0.6" stop-color="#651414"/><stop offset="1" stop-color="#3a0b0c"/></linearGradient>
+    <linearGradient id="furG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#806b53"/><stop offset="1" stop-color="#3b2f24"/></linearGradient>
+    <linearGradient id="leatherG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4a2e"/><stop offset="1" stop-color="#33220f"/></linearGradient>
+    <linearGradient id="quiltG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7d6a4f"/><stop offset="1" stop-color="#3a2d1e"/></linearGradient>
+    <linearGradient id="hoodG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4e4438"/><stop offset="0.6" stop-color="#2c251d"/><stop offset="1" stop-color="#16120d"/></linearGradient>
+    <linearGradient id="scarfG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3f8a8a"/><stop offset="0.6" stop-color="#245a5e"/><stop offset="1" stop-color="#123236"/></linearGradient>
+    <linearGradient id="trouserG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4a3f34"/><stop offset="1" stop-color="#231c15"/></linearGradient>
+    <linearGradient id="robeG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f3e80"/><stop offset="0.55" stop-color="#2e2350"/><stop offset="1" stop-color="#150f28"/></linearGradient>
+    <linearGradient id="robeD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#352a5c"/><stop offset="1" stop-color="#110c22"/></linearGradient>
+    <linearGradient id="hatG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a4d42"/><stop offset="0.6" stop-color="#2e251e"/><stop offset="1" stop-color="#15110d"/></linearGradient>
+    <linearGradient id="skinG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e2cfb0"/><stop offset="1" stop-color="#9c8466"/></linearGradient>
+    <pattern id="mail" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#3d4145"/><circle cx="1.5" cy="1.5" r="0.9" fill="#80858a"/></pattern>
+  </defs>
+  <g stroke="#16181a" stroke-width="1.2" stroke-linejoin="round">
+    <path d="M48 108 L60 108 L61 118 C57 119.5 51 119.5 47 118 Z" fill="#120e0a"/>
+  </g>
+</svg>

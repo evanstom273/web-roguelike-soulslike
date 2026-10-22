@@ -1,4 +1,4 @@
-import type * as Phaser from 'phaser'
+import * as Phaser from 'phaser'
 import { meetsRequirements } from '../data/attributes.ts'
 import { scalingMultiplier } from '../data/damage.ts'
 import type { DamageMap } from '../data/damageTypes.ts'
@@ -52,8 +52,15 @@ const HANDS: Record<Hand, { x: number; y: number; rest: number }> = {
 }
 // Sideways and forward hand offsets look deeper than they are in three-quarter view.
 const HAND_DEPTH = 0.5
-// The body sprite's feet, in its 96 x 128 art.
+// The character art is 96 x 128 with the feet at (48, 118) and the hips at y 86. Each
+// direction is four layers (see tools/characters.mjs); these are where they pivot.
 const FEET = { x: 48, y: 118 }
+const HIP_Y = 86
+const CAPE_Y = 44
+const MID = 56 // the figure turns about this point above the feet when rolling
+const HIPS: Record<string, [number, number]> = { s: [42, 54], se: [41, 53], e: [45, 51.5], ne: [41.5, 54.5], n: [41.5, 54.5] }
+const PARTS = ['back', 'leg-a', 'leg-b', 'body'] as const
+type Part = (typeof PARTS)[number]
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const degToRad = (d: number) => (d * Math.PI) / 180
@@ -106,12 +113,17 @@ export class Player implements Caster {
   private lockHoldFired = false
 
   private root: Phaser.GameObjects.Container
-  private body: Phaser.GameObjects.Image
+  /** The character's layers, turned and mirrored together; weapons sit outside it. */
+  private figure: Phaser.GameObjects.Container
+  private parts: Record<Part, Phaser.GameObjects.Image>
+  private shadow: Phaser.GameObjects.Ellipse
+  private hurt = 0
   private weaponImages: Record<Hand, Phaser.GameObjects.Image>
   private fx: Phaser.GameObjects.Graphics
   private trail: { x: number; y: number; age: number }[] = []
   private trailGfx: Phaser.GameObjects.Graphics
   private walkCycle = 0
+  private bob = 0
 
   constructor(scene: Phaser.Scene, spawn: Vec, walls: Segment[], loadout: Loadout, world: CombatWorld, spells: SpellSystem, getStatus: (id: string) => StatusDef) {
     this.walls = walls
@@ -128,6 +140,9 @@ export class Player implements Caster {
       isInvulnerable: () => this.invulnerable,
     })
     this.actor.onStaminaRestored = (n) => (this.stamina = Math.min(this.maxStamina, this.stamina + n))
+    this.actor.onDamaged = (_n, periodic) => {
+      if (!periodic) this.hurt = 0.18
+    }
     this.self = world.add({ actor: this.actor, team: 'player', x: this.x, y: this.y, radius: RADIUS })
 
     this.trailGfx = scene.add.graphics().setDepth(LAYER.trail)
@@ -138,8 +153,11 @@ export class Player implements Caster {
       right: scene.add.image(0, 0, weaponTextureKey(loadout.right.id)),
       left: scene.add.image(0, 0, weaponTextureKey(loadout.right.id)),
     }
-    this.body = scene.add.image(0, 0, playerTextureKey('s')).setOrigin(FEET.x / 96, FEET.y / 128)
-    this.root = scene.add.container(this.x, this.y, [this.weaponImages.right, this.weaponImages.left, this.body]).setDepth(standingDepth(this.y))
+    const look = loadout.appearance
+    this.parts = Object.fromEntries(PARTS.map((p) => [p, scene.add.image(0, 0, characterTextureKey(look, 's', p))])) as Record<Part, Phaser.GameObjects.Image>
+    this.figure = scene.add.container(0, -MID, PARTS.map((p) => this.parts[p]))
+    this.shadow = scene.add.ellipse(0, 0, 58, 16, 0x000000, 0.4)
+    this.root = scene.add.container(this.x, this.y, [this.shadow, this.weaponImages.right, this.weaponImages.left, this.figure]).setDepth(standingDepth(this.y))
     this.showWeapon('right')
     this.showWeapon('left')
   }
@@ -731,16 +749,9 @@ export class Player implements Caster {
   private render(dt: number) {
     this.root.setPosition(this.x, this.y).setDepth(standingDepth(this.y))
     this.fx.clear()
-
-    // Pick the drawn direction nearest the facing; westward ones are mirrored.
-    const view = facing8(this.facing)
-    this.body.setTexture(playerTextureKey(view.art)).setFlipX(view.flip)
-    this.walkCycle = Math.hypot(this.vx, this.vy) > 20 ? this.walkCycle + dt * 11 : 0
-    this.body.y = -Math.abs(Math.sin(this.walkCycle)) * 2.5
+    this.animate(dt)
 
     const rolling = this.state.kind === 'roll'
-    this.root.setScale(rolling ? 0.9 : 1)
-    this.body.setAlpha(this.invulnerable ? 0.75 : 1)
     if (rolling || this.state.kind === 'dash' || (this.sprinting && Math.random() < 0.35)) this.trail.push({ x: this.x, y: this.y, age: 0 })
     this.trailGfx.clear()
     this.trail = this.trail.filter((g) => (g.age += dt) < 0.22)
@@ -773,8 +784,93 @@ export class Player implements Caster {
       else leftAngle = raised
       if (this.state.kind === 'cast' && !this.state.released) this.drawCastGlow(t, this.state.spell.colour)
     }
-    this.placeWeapon('right', weaponAngle, view.angle)
-    this.placeWeapon('left', leftAngle, view.angle)
+    const bodyAngle = facing8(this.facing).angle
+    this.placeWeapon('right', weaponAngle, bodyAngle)
+    this.placeWeapon('left', leftAngle, bodyAngle)
+    // Draw order inside the character: shadow, weapons behind, the figure, weapons in front.
+    const behind: Phaser.GameObjects.GameObject[] = []
+    const front: Phaser.GameObjects.GameObject[] = []
+    for (const h of ['right', 'left'] as const) (this.handOffset(h, bodyAngle).inFront ? front : behind).push(this.weaponImages[h])
+    this.root.removeAll(false)
+    this.root.add([this.shadow, ...behind, this.figure, ...front])
+  }
+
+  /**
+   * Procedural animation over the drawn layers: legs stride and lift, the body bobs and
+   * breathes, the cape sways, the figure leans into swings, tumbles through rolls and
+   * flinches when hit.
+   */
+  private animate(dt: number) {
+    const view = facing8(this.facing)
+    const look = this.loadout.appearance
+    for (const p of PARTS) this.parts[p].setTexture(characterTextureKey(look, view.art, p))
+    this.figure.scaleX = view.flip ? -1 : 1
+
+    const speed = Math.hypot(this.vx, this.vy)
+    const moving = speed > 20 && this.state.kind !== 'roll'
+    // About one stride (both legs) every 160 px travelled.
+    if (moving) this.walkCycle += (dt * speed) / 26
+    const step = moving ? Math.sin(this.walkCycle) : 0
+    if (!moving) this.walkCycle = 0
+    const side = Math.abs(Math.cos(view.angle)) // 1 side-on, 0 facing or away from the camera
+    const [hipA, hipB] = HIPS[view.art]
+
+    const legA = this.parts['leg-a']
+    const legB = this.parts['leg-b']
+    legA.setOrigin(hipA / 96, HIP_Y / 128).setPosition(hipA - FEET.x, HIP_Y - FEET.y + MID - Math.max(0, step) * 3 * (1 - side * 0.6))
+    legB.setOrigin(hipB / 96, HIP_Y / 128).setPosition(hipB - FEET.x, HIP_Y - FEET.y + MID - Math.max(0, -step) * 3 * (1 - side * 0.6))
+    legA.setRotation(step * 0.42 * side)
+    legB.setRotation(-step * 0.42 * side)
+
+    const t = this.time
+    const bob = moving ? -Math.abs(Math.sin(this.walkCycle)) * 2.5 : 0
+    const breathe = moving ? 1 : 1 + Math.sin(t * 2.4) * 0.012
+    const body = this.parts.body
+    body.setOrigin(FEET.x / 96, FEET.y / 128).setPosition(0, MID + bob).setScale(1, breathe)
+    const back = this.parts.back
+    back.setOrigin(FEET.x / 96, CAPE_Y / 128).setPosition(0, CAPE_Y - FEET.y + MID + bob)
+    back.setRotation(Math.sin(t * 1.7) * 0.015 + (moving ? Math.sin(this.walkCycle * 0.5) * 0.03 + 0.04 * Math.min(1, speed / 300) : 0))
+
+    // Whole-figure motion: roll tumble, lean into swings, flinch when hit.
+    let lean = 0
+    let squash = 1
+    let lift = 0
+    if (this.state.kind === 'roll') {
+      // Rolling across the screen tumbles head over heels; towards or away from the camera
+      // the body tucks down into a ball and springs back up instead.
+      const k = Math.min(1, this.state.t / MOVE.dodgeDuration)
+      const tuck = Math.sin(Math.PI * k)
+      const across = Math.abs(Math.cos(this.state.dir))
+      if (across > 0.5) {
+        lean = (Math.cos(this.state.dir) >= 0 ? 1 : -1) * Math.PI * 2 * easeOut(k)
+        squash = 1 - 0.2 * tuck
+        lift = tuck * 6
+      } else {
+        lean = Math.cos(this.state.dir) * 0.3 * tuck
+        squash = 1 - 0.38 * tuck
+      }
+    } else if (this.state.kind === 'swing') {
+      const a = this.state.attack
+      const k = this.state.t < a.windup ? -0.5 * (this.state.t / a.windup) : Math.max(0, 1 - (this.state.t - a.windup) / (a.active + a.recovery))
+      lean = Math.cos(this.facing) * 0.12 * k
+    }
+    this.hurt = Math.max(0, this.hurt - dt)
+    if (this.hurt > 0) lean -= Math.cos(this.facing) * 0.12 * (this.hurt / 0.18)
+    // The figure is mirrored for westward facings, which mirrors its rotation too.
+    // Squashing keeps the feet on the ground.
+    this.figure.setRotation(view.flip ? -lean : lean).setPosition(0, -MID * squash - lift)
+    this.figure.scaleY = squash
+    for (const p of PARTS) {
+      const img = this.parts[p]
+      img.setAlpha(this.invulnerable && this.state.kind !== 'roll' ? 0.75 : 1)
+      if (this.hurt > 0.1) img.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL)
+      else img.clearTint().setTintMode(Phaser.TintModes.MULTIPLY)
+    }
+    this.shadow.setScale(this.state.kind === 'roll' ? 0.8 : 1)
+    const rolling = this.state.kind === 'roll'
+    this.weaponImages.right.setVisible(!rolling && !!this.held('right'))
+    this.weaponImages.left.setVisible(!rolling && !!this.held('left'))
+    this.bob = bob
   }
 
   /** A hand's offset from the feet on screen, for the drawn direction. */
@@ -785,21 +881,22 @@ export class Player implements Caster {
     return { x: gx, y: gy * HAND_DEPTH - HAND_HEIGHT, inFront: gy > 0 }
   }
 
-  /** Puts a weapon in its hand, pointing along `angle` (from facing), in front of or behind the body. */
+  /** Puts a weapon in its hand, pointing along `angle` (from facing). */
   private placeWeapon(hand: Hand, angle: number, bodyAngle: number) {
     const img = this.weaponImages[hand]
     const w = this.held(hand)
     if (!w) return
     const at = this.handOffset(hand, bodyAngle)
-    img.setPosition(at.x, at.y + this.body.y)
+    img.setPosition(at.x, at.y + this.bob)
     if (w.art.upright) {
       // Shields stay upright, tilting a little as they're used and narrowing side-on.
-      img.setRotation((angle - this.restAngle(hand)) * 0.35).setScale(Math.max(0.4, Math.abs(Math.sin(this.facing))), 1)
-    } else {
-      img.setRotation(this.facing + angle).setScale(1)
+      img.setRotation((angle - this.restAngle(hand)) * 0.35).setScale(Math.max(0.4, Math.abs(Math.sin(this.facing))), 1).setFlipY(false)
+      return
     }
-    if (at.inFront) this.root.bringToTop(img)
-    else this.root.sendToBack(img)
+    // Blades point along the swing. Pointing left they're flipped so the edge and the
+    // light stay the right way up; pointing at or away from the camera they shorten.
+    const a = this.facing + angle
+    img.setRotation(a).setFlipY(Math.cos(a) < 0).setScale(Math.hypot(Math.cos(a), Math.sin(a) * 0.6), 1)
   }
 
   /** Idle weapon angle from facing: the weapon's own, or the hand's default. */
@@ -874,4 +971,5 @@ const LOCK_HOLD = 0.35
 const CHARGE_TIME = 0.5
 
 export const weaponTextureKey = (id: string) => `weapon:${id}`
-export const playerTextureKey = (direction: string) => `player:${direction}`
+export const characterTextureKey = (look: string, direction: string, part: string) => `char:${look}:${direction}:${part}`
+export const CHARACTER_PARTS = PARTS
