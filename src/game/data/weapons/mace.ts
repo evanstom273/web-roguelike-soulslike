@@ -1,7 +1,7 @@
-import artUrl from '../../art/placeholder-blade.svg?no-inline'
+import artUrl from '../../art/weapons/mace.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Tuned for this game: base damage, swing timing and cooldowns set per
+// Tuned for this game: base damage, swing timing and cooldowns set per
 // weapon so heavier weapons hit harder and slower. Charged heavy keeps reach x1.12.
 export default defineWeapon({
   id: 'mace',
@@ -11,11 +11,11 @@ export default defineWeapon({
   requirements: {},
   art: {
     url: artUrl,
-    width: 132,
-    height: 24,
+    width: 114,
+    height: 36,
     grip: {
-      x: 9,
-      y: 12,
+      x: 12,
+      y: 18,
     },
   },
   light: {

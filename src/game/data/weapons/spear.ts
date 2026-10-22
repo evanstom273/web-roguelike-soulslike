@@ -1,7 +1,7 @@
-import artUrl from '../../art/placeholder-blade.svg?no-inline'
+import artUrl from '../../art/weapons/spear.svg?no-inline'
 import { defineWeapon } from '../types.ts'
 
-// Placeholder art. Tuned for this game: base damage, swing timing and cooldowns set per
+// Tuned for this game: base damage, swing timing and cooldowns set per
 // weapon so heavier weapons hit harder and slower. Charged heavy keeps reach x1.12.
 export default defineWeapon({
   id: 'spear',
@@ -11,11 +11,11 @@ export default defineWeapon({
   requirements: {},
   art: {
     url: artUrl,
-    width: 132,
-    height: 24,
+    width: 186,
+    height: 22,
     grip: {
-      x: 9,
-      y: 12,
+      x: 40,
+      y: 11,
     },
   },
   light: {

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="20" viewBox="0 0 72 20">
+  <!-- Dagger, overhead, pointing +x. Grip pivot at (10, 10). -->
+  <defs>
+    <linearGradient id="dg-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6e9ec"/><stop offset="1" stop-color="#a3a9ae"/></linearGradient>
+    <linearGradient id="dg-bot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#787e84"/><stop offset="1" stop-color="#474c51"/></linearGradient>
+  </defs>
+  <g stroke="#141618" stroke-width="1.1" stroke-linejoin="round">
+    <path d="M23 6.5 L58 7 L70 10 L58 13 L23 13.5 Z" fill="url(#dg-bot)"/>
+    <path d="M23 6.5 L58 7 L70 10 L23 10 Z" fill="url(#dg-top)" stroke="none"/>
+    <path d="M23 6.5 L58 7 L70 10 L58 13 L23 13.5 Z" fill="none"/>
+    <path d="M25 8.2 L55 8.6" stroke="#ffffff" stroke-opacity="0.7" stroke-width="0.6" fill="none"/>
+    <rect x="5" y="7.5" width="15" height="5" rx="1.8" fill="#2f2a26"/>
+    <path d="M8 7.5 L9.5 12.5 M11.5 7.5 L13 12.5 M15 7.5 L16.5 12.5" stroke="#171310" stroke-width="0.7" fill="none"/>
+    <path d="M19.5 3.5 L23.5 4.5 L23.5 15.5 L19.5 16.5 Z" fill="#6f747a"/>
+    <path d="M1.5 8 L5.5 7.5 L5.5 12.5 L1.5 12 Z" fill="#6f747a"/>
+  </g>
+</svg>

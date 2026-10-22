@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="78" height="14" viewBox="0 0 78 14">
+  <!-- Bone-and-silver wand, overhead, pointing +x. Grip pivot at (10, 7). -->
+  <defs>
+    <linearGradient id="wd-bone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9dfc8"/><stop offset="1" stop-color="#8f8166"/></linearGradient>
+    <radialGradient id="wd-gem" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="#9fd0ff"/><stop offset="1" stop-color="#2a4fb0"/></radialGradient>
+    <radialGradient id="wd-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7fb8ff" stop-opacity="0.5"/><stop offset="1" stop-color="#7fb8ff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <circle cx="71" cy="7" r="7" fill="url(#wd-glow)"/>
+  <g stroke="#141618" stroke-width="1" stroke-linejoin="round">
+    <path d="M18 5.2 L64 6 L64 8 L18 8.8 Z" fill="url(#wd-bone)"/>
+    <path d="M22 5.9 L60 6.4" stroke="#ffffff" stroke-opacity="0.6" stroke-width="0.6" fill="none"/>
+    <rect x="3" y="4.5" width="16" height="5" rx="1.8" fill="#2a2420"/>
+    <path d="M16 3.8 L20 4.2 L20 9.8 L16 10.2 Z M62 4.8 L66 5.2 L66 8.8 L62 9.2 Z" fill="#b9bec3"/>
+    <path d="M66 7 L70 4 L75 7 L70 10 Z" fill="url(#wd-gem)"/>
+  </g>
+</svg>

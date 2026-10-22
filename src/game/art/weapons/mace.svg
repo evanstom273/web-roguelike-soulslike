@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="114" height="36" viewBox="0 0 114 36">
+  <!-- Flanged mace, overhead, pointing +x. Grip pivot at (12, 18). -->
+  <defs>
+    <linearGradient id="mc-iron" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a5aaaf"/><stop offset="0.5" stop-color="#686d72"/><stop offset="1" stop-color="#2d3033"/></linearGradient>
+    <radialGradient id="mc-head" cx="38%" cy="35%" r="70%"><stop offset="0" stop-color="#b9bdc1"/><stop offset="0.55" stop-color="#6a6f74"/><stop offset="1" stop-color="#26292c"/></radialGradient>
+  </defs>
+  <g stroke="#141618" stroke-width="1.2" stroke-linejoin="round">
+    <rect x="28" y="15" width="62" height="6" rx="2" fill="url(#mc-iron)"/>
+    <path d="M30 16.3 L86 16.3" stroke="#e1e4e7" stroke-opacity="0.6" stroke-width="0.7" fill="none"/>
+    <rect x="4" y="14" width="25" height="8" rx="2.5" fill="#4a3220"/>
+    <path d="M8 14 L10 22 M13 14 L15 22 M18 14 L20 22 M23 14 L25 22" stroke="#26180d" stroke-width="0.8" fill="none"/>
+    <circle cx="3.5" cy="18" r="3.3" fill="url(#mc-iron)"/>
+    <path d="M97 18 L101 2 L104 18 L101 34 Z M97 18 L84 6 L100 15 Z M97 18 L84 30 L100 21 Z M97 18 L112 8 L103 17 Z M97 18 L112 28 L103 19 Z" fill="url(#mc-iron)"/>
+    <circle cx="98" cy="18" r="8.5" fill="url(#mc-head)"/>
+    <circle cx="98" cy="18" r="2.6" fill="#3a3d40"/>
+    <path d="M93 13.5 C95 12 98 11.6 100.5 12.4" stroke="#f2f4f5" stroke-opacity="0.75" stroke-width="0.9" fill="none"/>
+  </g>
+</svg>

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="186" height="22" viewBox="0 0 186 22">
+  <!-- Spear, overhead, pointing +x. Held partway up the shaft: pivot at (40, 11). -->
+  <defs>
+    <linearGradient id="sp-wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a7148"/><stop offset="1" stop-color="#4c3218"/></linearGradient>
+    <linearGradient id="sp-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2e6e9"/><stop offset="1" stop-color="#a1a7ad"/></linearGradient>
+    <linearGradient id="sp-bot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#747a80"/><stop offset="1" stop-color="#43484d"/></linearGradient>
+  </defs>
+  <g stroke="#141618" stroke-width="1.1" stroke-linejoin="round">
+    <rect x="4" y="8.4" width="148" height="5.2" rx="2.4" fill="url(#sp-wood)"/>
+    <path d="M20 9.6 L60 9.4 M80 9.5 L130 9.6" stroke="#c09a6c" stroke-opacity="0.6" stroke-width="0.7" fill="none"/>
+    <rect x="32" y="7.6" width="16" height="6.8" rx="1.5" fill="#3a2414"/>
+    <path d="M35 7.6 L37 14.4 M40 7.6 L42 14.4 M45 7.6 L47 14.4" stroke="#1d1209" stroke-width="0.7" fill="none"/>
+    <path d="M1 9 L6 8 L6 14 L1 13 Z" fill="#5d6267"/>
+    <path d="M146 7.5 L158 8.5 L158 13.5 L146 14.5 Z" fill="#5d6267"/>
+    <path d="M140 12 C137 15 135 19 136 21 M143 12 C142 16 143 19 145 20.5" stroke="#6a1414" stroke-width="1.6" fill="none"/>
+    <path d="M157 11 C162 5 170 4.5 184 11 C170 17.5 162 17 157 11 Z" fill="url(#sp-bot)"/>
+    <path d="M157 11 C162 5 170 4.5 184 11 Z" fill="url(#sp-top)" stroke="none"/>
+    <path d="M157 11 C162 5 170 4.5 184 11 C170 17.5 162 17 157 11 Z" fill="none"/>
+    <path d="M159 11 L181 11" stroke="#2c3034" stroke-width="0.8" fill="none"/>
+  </g>
+</svg>
