@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser'
 import { useEffect, useMemo, useRef } from 'react'
+import { addPlayTime } from '../storage/saves.ts'
 import { HudStore } from './hudStore.ts'
 import { InputState } from './input.ts'
 import { resolveLoadout, type Character } from './player/character.ts'
@@ -9,7 +10,8 @@ import { TouchControls } from './ui/TouchControls.tsx'
 
 const isTouchDevice = () => window.matchMedia('(pointer: coarse)').matches
 
-export function GameView({ seed, character, onQuit }: { seed: string; character: Character; onQuit: () => void }) {
+/** `saveId` null = sandbox: nothing is recorded. */
+export function GameView({ seed, character, saveId, onQuit }: { seed: string; character: Character; saveId: number | null; onQuit: () => void }) {
   const host = useRef<HTMLDivElement>(null)
   const loadout = useMemo(() => resolveLoadout(character), [character])
   const input = useMemo(() => new InputState(), [])
@@ -28,6 +30,8 @@ export function GameView({ seed, character, onQuit }: { seed: string; character:
     game.scene.add('run', RunScene, true, data)
     return () => game.destroy(true)
   }, [seed, loadout, input, hud])
+
+  usePlayTime(saveId)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -62,4 +66,44 @@ export function GameView({ seed, character, onQuit }: { seed: string; character:
       )}
     </main>
   )
+}
+
+/**
+ * Counts time spent in the run while the page is visible, writing it to the save every
+ * 10 seconds and when the run ends or the page is hidden or closed.
+ */
+function usePlayTime(saveId: number | null) {
+  useEffect(() => {
+    if (saveId === null) return
+    let pending = 0
+    let last = performance.now()
+    let visible = !document.hidden
+    const tick = () => {
+      const now = performance.now()
+      if (visible) pending += Math.min(now - last, 2000) / 1000 // a stalled tab doesn't count
+      last = now
+    }
+    const flush = () => {
+      tick()
+      const seconds = pending
+      pending = 0
+      void addPlayTime(saveId, seconds)
+    }
+    const onVisibility = () => {
+      tick()
+      visible = !document.hidden
+      if (!visible) flush()
+    }
+    const ticker = window.setInterval(tick, 1000)
+    const saver = window.setInterval(flush, 10_000)
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      window.clearInterval(ticker)
+      window.clearInterval(saver)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', flush)
+      flush()
+    }
+  }, [saveId])
 }
