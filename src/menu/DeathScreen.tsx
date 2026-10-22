@@ -1,19 +1,23 @@
 import { useMemo, useState } from 'react'
 import { ATTRIBUTE_IDS, ATTRIBUTES, characterLevel, deriveStats, type AttributeId, type AttributeLevels } from '../game/data/attributes.ts'
+import { totalDamage } from '../game/data/damage.ts'
+import { spellPrice, weaponPrice } from '../game/data/prices.ts'
 import { checkpointCost, levelCost, MAX_UPGRADE, SHARD_NAME, upgradeCost, upgradeShards } from '../game/data/progression.ts'
-import { getWeapon } from '../game/data/registry.ts'
+import { getStatus, getWeapon, SPELLS, WEAPONS } from '../game/data/registry.ts'
+import type { Requirements, Scaling, SpellDef, WeaponDef } from '../game/data/types.ts'
 import type { Character } from '../game/player/character.ts'
 import { biomeForFloor } from '../game/world/biomes.ts'
 import { Backdrop } from './Backdrop.tsx'
 import { panel } from './MenuFrame.tsx'
 
-// After death: spend the runes you were carrying on levels, weapon upgrades or a
-// checkpoint start for the next run. Whatever isn't spent is lost when you leave.
+// After death: spend the runes you were carrying on levels, weapon upgrades, new weapons
+// and spells, or a checkpoint start for the next run. Whatever isn't spent is lost when
+// you leave.
 // Nothing is bought until you leave, so every choice here can be taken back.
 
 const ATTRIBUTE_CAP = 99
 
-type Tab = 'levels' | 'weapons' | 'checkpoint'
+type Tab = 'levels' | 'upgrade' | 'shop' | 'checkpoint'
 
 export interface NextRun {
   character: Character
@@ -53,23 +57,27 @@ export function DeathScreen({
   const [levels, setLevels] = useState<AttributeLevels>(character.levels)
   const [upgrades, setUpgrades] = useState<Record<string, number>>(character.weaponLevels)
   const [startFloor, setStartFloor] = useState(1)
+  const [boughtWeapons, setBoughtWeapons] = useState<string[]>([])
+  const [boughtSpells, setBoughtSpells] = useState<string[]>([])
   const [confirming, setConfirming] = useState(false)
 
   const baseLevel = characterLevel(character.levels)
   const level = characterLevel(levels)
   const levelSpend = levelsCost(baseLevel, level)
+  const owned = [...character.weaponIds, ...boughtWeapons]
   const upgradeSpend = useMemo(() => {
     let runes = 0
     let shards = 0
-    for (const id of character.weaponIds) {
+    for (const id of [...character.weaponIds, ...boughtWeapons]) {
       const c = upgradesCost(character.weaponLevels[id] ?? 0, upgrades[id] ?? 0)
       runes += c.runes
       shards += c.shards
     }
     return { runes, shards }
-  }, [character, upgrades])
+  }, [character, upgrades, boughtWeapons])
   const checkpointSpend = startFloor > 1 ? checkpointCost(startFloor) : 0
-  const runesLeft = runes - levelSpend - upgradeSpend.runes - checkpointSpend
+  const shopSpend = boughtWeapons.reduce((t, id) => t + weaponPrice(getWeapon(id)), 0) + boughtSpells.reduce((t, id) => t + spellPrice(SPELLS.get(id)!), 0)
+  const runesLeft = runes - levelSpend - upgradeSpend.runes - checkpointSpend - shopSpend
   const shardsLeft = character.shards - upgradeSpend.shards
 
   const before = deriveStats(character.levels)
@@ -96,6 +104,21 @@ export function DeathScreen({
     setUpgrades({ ...upgrades, [id]: (upgrades[id] ?? 0) - 1 })
     setConfirming(false)
   }
+  const buyWeapon = (w: WeaponDef) => {
+    if (boughtWeapons.includes(w.id)) {
+      // Taking a purchase back also takes back any upgrades made to it.
+      setBoughtWeapons(boughtWeapons.filter((id) => id !== w.id))
+      setUpgrades(Object.fromEntries(Object.entries(upgrades).filter(([id]) => id !== w.id)))
+    } else if (weaponPrice(w) <= runesLeft) {
+      setBoughtWeapons([...boughtWeapons, w.id])
+    }
+    setConfirming(false)
+  }
+  const buySpell = (sp: SpellDef) => {
+    if (boughtSpells.includes(sp.id)) setBoughtSpells(boughtSpells.filter((id) => id !== sp.id))
+    else if (spellPrice(sp) <= runesLeft) setBoughtSpells([...boughtSpells, sp.id])
+    setConfirming(false)
+  }
   const chooseStart = (floor: number) => {
     // Swapping one checkpoint for another refunds the first.
     if (floor > 1 && checkpointCost(floor) > runesLeft + checkpointSpend) return
@@ -106,12 +129,21 @@ export function DeathScreen({
   const begin = () => {
     if (runesLeft > 0 && !confirming) return setConfirming(true)
     onBegin({
-      character: { ...character, levels, weaponLevels: Object.fromEntries(Object.entries(upgrades).filter(([, l]) => l > 0)), shards: shardsLeft },
+      character: {
+        ...character,
+        levels,
+        weaponIds: owned,
+        spellIds: [...character.spellIds, ...boughtSpells],
+        weaponLevels: Object.fromEntries(Object.entries(upgrades).filter(([, l]) => l > 0)),
+        shards: shardsLeft,
+      },
       startFloor,
     })
   }
 
   const floors = Array.from({ length: deepestFloorCleared + 1 }, (_, i) => i + 1)
+  const forSaleWeapons = [...WEAPONS.values()].filter((w) => !character.weaponIds.includes(w.id)).sort((a, b) => weaponPrice(a) - weaponPrice(b))
+  const forSaleSpells = [...SPELLS.values()].filter((sp) => !sp.basic && !character.spellIds.includes(sp.id)).sort((a, b) => spellPrice(a) - spellPrice(b))
 
   return (
     <main className="relative flex h-full flex-col items-center overflow-y-auto px-4 py-8">
@@ -127,11 +159,12 @@ export function DeathScreen({
           </span>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="mt-4 grid grid-cols-4 gap-1.5">
           {(
             [
               ['levels', 'Level up'],
-              ['weapons', 'Weapons'],
+              ['upgrade', 'Upgrade'],
+              ['shop', 'Shop'],
               ['checkpoint', 'Checkpoint'],
             ] as const
           ).map(([id, name]) => (
@@ -139,7 +172,7 @@ export function DeathScreen({
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`border px-2 py-2 text-[0.65rem] font-semibold tracking-[0.2em] uppercase ${tab === id ? 'border-ember bg-panel text-ember' : 'border-line bg-hull/90 text-text hover:border-ember/60'}`}
+              className={`border px-1 py-2 text-[0.6rem] font-semibold tracking-[0.12em] uppercase sm:text-[0.65rem] sm:tracking-[0.2em] ${tab === id ? 'border-ember bg-panel text-ember' : 'border-line bg-hull/90 text-text hover:border-ember/60'}`}
             >
               {name}
             </button>
@@ -185,11 +218,11 @@ export function DeathScreen({
             </>
           )}
 
-          {tab === 'weapons' && (
+          {tab === 'upgrade' && (
             <>
               <p className="text-xs text-dim">Each level adds 8% to a weapon's damage, or to the spells a catalyst casts. Up to +{MAX_UPGRADE}.</p>
               <ul className="mt-3 divide-y divide-line">
-                {character.weaponIds.map((id) => {
+                {owned.map((id) => {
                   const now = character.weaponLevels[id] ?? 0
                   const draft = upgrades[id] ?? 0
                   const next = draft + 1
@@ -222,6 +255,46 @@ export function DeathScreen({
                     </li>
                   )
                 })}
+              </ul>
+            </>
+          )}
+
+          {tab === 'shop' && (
+            <>
+              <p className="text-xs text-dim">Anything bought is yours for good, and can be equipped from the next run on.</p>
+              <h2 className="mt-4 text-[0.65rem] tracking-[0.25em] text-dim uppercase">Weapons</h2>
+              <ul className="mt-1 divide-y divide-line">
+                {forSaleWeapons.map((w) => (
+                  <ShopRow
+                    key={w.id}
+                    name={w.name}
+                    detail={w.catalyst ? `Catalyst · spell power ${Math.round(w.catalyst.power * 100)}% · ${scalingText(w.catalyst.scaling)}` : `${damageText(w.light.damage)} · ${scalingText(w.light.scaling)}${w.light.statuses.length ? ` · ${w.light.statuses.map((s) => getStatus(s.status).name).join(', ')}` : ''}`}
+                    requirements={w.requirements}
+                    levels={levels}
+                    price={weaponPrice(w)}
+                    bought={boughtWeapons.includes(w.id)}
+                    affordable={weaponPrice(w) <= runesLeft}
+                    onClick={() => buyWeapon(w)}
+                  />
+                ))}
+                {forSaleWeapons.length === 0 && <li className="py-2 text-xs text-dim">You own every weapon.</li>}
+              </ul>
+              <h2 className="mt-5 text-[0.65rem] tracking-[0.25em] text-dim uppercase">Spells</h2>
+              <ul className="mt-1 divide-y divide-line">
+                {forSaleSpells.map((sp) => (
+                  <ShopRow
+                    key={sp.id}
+                    name={sp.name}
+                    detail={`${spellText(sp)} · ${sp.charges} charges`}
+                    requirements={sp.requirements}
+                    levels={levels}
+                    price={spellPrice(sp)}
+                    bought={boughtSpells.includes(sp.id)}
+                    affordable={spellPrice(sp) <= runesLeft}
+                    onClick={() => buySpell(sp)}
+                  />
+                ))}
+                {forSaleSpells.length === 0 && <li className="py-2 text-xs text-dim">You know every spell.</li>}
               </ul>
             </>
           )}
@@ -305,5 +378,78 @@ function Derived({ name, from, to }: { name: string; from: number; to: number })
       {name} <span className="text-text tabular-nums">{Math.round(from)}</span>
       {to !== from && <span className="text-ember tabular-nums"> → {Math.round(to)}</span>}
     </span>
+  )
+}
+
+const TYPE_NAMES: Record<string, string> = { physical: 'Physical', magic: 'Magic', fire: 'Fire', lightning: 'Lightning', holy: 'Holy' }
+
+const damageText = (d: Record<string, number | undefined>) =>
+  Object.entries(d)
+    .filter(([, n]) => n)
+    .map(([t, n]) => `${TYPE_NAMES[t] ?? t} ${n}`)
+    .join(' + ')
+
+const scalingText = (s: Scaling | null) => {
+  const parts = Object.entries(s ?? {})
+    .filter(([, n]) => n)
+    .map(([id, n]) => `${ATTRIBUTES[id as AttributeId].short} ${'★'.repeat(n!)}`)
+  return parts.length ? parts.join(' ') : 'no scaling'
+}
+
+function spellText(sp: SpellDef) {
+  const own = 'attack' in sp.delivery && sp.delivery.attack ? sp.delivery.attack.damage : null
+  const dmg = own && totalDamage(own) > totalDamage(sp.cast.damage) ? own : sp.cast.damage
+  if (totalDamage(dmg) > 0) return damageText(dmg)
+  if (sp.healthRestore > 0) return `Heals ${sp.healthRestore}`
+  return 'Support'
+}
+
+function ShopRow({
+  name,
+  detail,
+  requirements,
+  levels,
+  price,
+  bought,
+  affordable,
+  onClick,
+}: {
+  name: string
+  detail: string
+  requirements: Requirements
+  levels: AttributeLevels
+  price: number
+  bought: boolean
+  affordable: boolean
+  onClick: () => void
+}) {
+  const reqs = Object.entries(requirements).filter(([, n]) => n)
+  return (
+    <li className="flex items-center gap-3 py-2">
+      <div className="min-w-0 flex-1">
+        <div className={`text-sm tracking-[0.12em] uppercase ${bought ? 'text-ember' : 'text-text'}`}>{name}</div>
+        <div className="text-xs text-dim">{detail}</div>
+        {reqs.length > 0 && (
+          <div className="text-xs text-dim">
+            Needs{' '}
+            {reqs.map(([id, n], i) => (
+              <span key={id} className={levels[id as AttributeId] >= n! ? 'text-text' : 'text-blood'}>
+                {i > 0 && ', '}
+                {ATTRIBUTES[id as AttributeId].short} {n}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <span className={`text-xs tabular-nums ${bought ? 'text-ember' : affordable ? 'text-text' : 'text-blood'}`}>{price}</span>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={!bought && !affordable}
+        className={`w-16 shrink-0 border px-2 py-1.5 text-[0.6rem] font-semibold tracking-[0.15em] uppercase disabled:opacity-30 ${bought ? 'border-ember text-ember hover:bg-ember/10' : 'border-line text-text hover:border-ember hover:text-ember'}`}
+      >
+        {bought ? 'Undo' : 'Buy'}
+      </button>
+    </li>
   )
 }

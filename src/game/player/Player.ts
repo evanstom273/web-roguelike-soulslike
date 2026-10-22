@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser'
 import { meetsRequirements } from '../data/attributes.ts'
-import { scalingMultiplier } from '../data/damage.ts'
+import { healthDamage, scalingMultiplier } from '../data/damage.ts'
 import { upgradeMultiplier } from '../data/progression.ts'
 import type { DamageMap } from '../data/damageTypes.ts'
 import { PLAYER_MOVEMENT as MOVE, PLAYER_VITALS } from '../data/player.ts'
@@ -682,6 +682,36 @@ export class Player implements Caster {
     return cat ? cat.power * scalingMultiplier(cat.scaling, this.levels) * this.upgrade(hand) : 1
   }
 
+  /** What the status screen shows about what you're holding and casting. */
+  status(): PlayerStatus {
+    const hand = (h: Hand): HeldStatus | null => {
+      const w = this.held(h)
+      if (!w) return null
+      const upgrade = this.loadout.weaponLevels[w.id] ?? 0
+      const ar = (a: AttackDef) => healthDamage(a, { levels: this.levels, multiplier: this.upgrade(h) }, null)
+      return {
+        name: w.name,
+        upgrade,
+        light: w.catalyst ? null : ar(w.light),
+        heavy: w.catalyst ? null : ar(w.heavy),
+        spellPower: w.catalyst ? Math.round(this.spellPower(h) * 100) : null,
+        usable: meetsRequirements(this.levels, w.requirements),
+      }
+    }
+    const castable = this.castableSpells
+    return {
+      hp: this.hp,
+      maxHp: this.maxHp,
+      maxStamina: this.maxStamina,
+      right: hand('right'),
+      left: hand('left'),
+      spells: this.loadout.spells
+        .filter((sp) => !sp.basic || castable.includes(sp))
+        .map((sp) => ({ name: sp.name, basic: sp.basic, left: this.chargesLeft(sp), max: this.maxCharges(sp), castable: castable.includes(sp) })),
+      effects: [...this.actor.effects.values()].map((e) => e.def.name),
+    }
+  }
+
   /** Damage multiplier from the upgrade level of the weapon in a hand (not applied to imbues). */
   private upgrade(hand: Hand): number {
     const id = hand === 'right' ? this.rightId : this.leftId
@@ -974,6 +1004,25 @@ export class Player implements Caster {
     this.fx.fillStyle(parseInt(colour.slice(1), 16), 0.2 + 0.4 * progress)
     this.fx.fillCircle(tip.x, tip.y, 4 + 10 * progress)
   }
+}
+
+export interface HeldStatus {
+  name: string
+  upgrade: number
+  light: number | null // attack rating, before the target's defence
+  heavy: number | null
+  spellPower: number | null // % for catalysts
+  usable: boolean // requirements met
+}
+
+export interface PlayerStatus {
+  hp: number
+  maxHp: number
+  maxStamina: number
+  right: HeldStatus | null
+  left: HeldStatus | null
+  spells: { name: string; basic: boolean; left: number; max: number; castable: boolean }[]
+  effects: string[]
 }
 
 /** Holding the lock button this long locks on / off; anything shorter is a tap. */

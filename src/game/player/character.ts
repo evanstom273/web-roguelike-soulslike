@@ -1,5 +1,5 @@
 import { baseLevels, deriveStats, type AttributeLevels, type DerivedStats } from '../data/attributes.ts'
-import type { ClassDef } from '../data/classes.ts'
+import { CLASSES, type ClassDef } from '../data/classes.ts'
 import { getSpell, getWeapon, SPELLS, WEAPONS } from '../data/registry.ts'
 import type { SpellDef, WeaponDef } from '../data/types.ts'
 
@@ -71,10 +71,14 @@ export function resolveLoadout(c: Character): Loadout {
   }
 }
 
-/** Fills in fields added since a save was made. */
+/**
+ * Fills in fields added since a save was made. Characters made before starting spells
+ * existed get their class's.
+ */
 export const upgradeCharacter = (c: Character, classId: string): Character => ({
   ...c,
   appearance: c.appearance ?? classId,
   weaponLevels: c.weaponLevels ?? {},
   shards: c.shards ?? 0,
+  spellIds: c.spellIds.length ? c.spellIds : [...(CLASSES.find((k) => k.id === classId)?.spellIds ?? [])],
 })

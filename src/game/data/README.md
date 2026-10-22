@@ -20,6 +20,8 @@ Also here:
 - `trainingDummy.ts`: the practice target's vitals.
 - `progression.ts`: level-up and weapon-upgrade costs, and the checkpoint-start price.
 - `difficulty.ts`: how enemies toughen with depth and run time, and how rune drops grow.
+- `prices.ts`: what the post-death shop charges, worked out from each weapon's and spell's
+  numbers, so new ones are priced automatically.
 
 Enemy art is rendered by `tools/rig` (a model in `tools/rig/models/`, named by the enemy's
 `look`); the weapon in its hand is just for show, its attacks are its moves. A move is

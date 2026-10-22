@@ -48,6 +48,9 @@
 - There is no recovering those lost runes from the place of death.
 - Exact attribute roster, costs and progression curve are not decided.
 - Weapons can be upgraded on the post-death screen, following Ashen Vow's system: runes plus a smithing material that enemies drop, up to +10, each level adding to the weapon's damage.
+- New weapons and spells are bought with runes on the post-death screen, giving runes another use. Prices follow a weapon's or spell's strength (higher damage costs more), and are deliberately expensive.
+- Starting spells: Warrior has Magic Weapon and Healing Aura; Dex has Magic Dash and Orbiting Shards; Magic has Magic Shard, Magic Wave, Chain Lightning and Magic Rain.
+- In a run there's a minimap (and a full map) and a status screen showing your stats; the status screen pauses the game.
 
 ## 6. Purchasable checkpoint starts
 

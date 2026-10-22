@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ATTRIBUTE_IDS, ATTRIBUTES, deriveStats } from '../game/data/attributes.ts'
 import { CLASSES, type ClassDef } from '../game/data/classes.ts'
-import { getWeapon } from '../game/data/registry.ts'
+import { getSpell, getWeapon } from '../game/data/registry.ts'
 import { MenuFrame, panel } from './MenuFrame.tsx'
 
 // New game: pick a starting class. Its attributes and kit are shown in full.
@@ -79,6 +79,14 @@ export function ClassSelect({ onPick, onBack }: { onPick: (cls: ClassDef) => voi
                   <li key={id} className="flex justify-between gap-2">
                     <span>{getWeapon(id).name}</span>
                     <span className="text-[0.6rem] tracking-[0.2em] text-dim uppercase">{id === cls.right ? 'Right' : id === cls.left ? 'Left' : ''}</span>
+                  </li>
+                ))}
+              </ul>
+              <ul className="mt-2 space-y-1 border-t border-line pt-2 text-sm text-text/80">
+                {cls.spellIds.map((id) => (
+                  <li key={id} className="flex justify-between gap-2">
+                    <span>{getSpell(id).name}</span>
+                    <span className="text-[0.6rem] tracking-[0.2em] text-dim uppercase">Spell</span>
                   </li>
                 ))}
               </ul>

@@ -3,10 +3,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { addPlayTime } from '../storage/saves.ts'
 import { HudStore } from './hudStore.ts'
 import { InputState } from './input.ts'
+import { MapStore } from './mapStore.ts'
 import { resolveLoadout, type Character } from './player/character.ts'
-import { RunScene, type RunEvents, type RunProgress, type RunSceneData } from './RunScene.ts'
+import { RunScene, type RunEvents, type RunProgress, type RunSceneData, type RunStatus } from './RunScene.ts'
 import { biomeForFloor } from './world/biomes.ts'
 import { Hud } from './ui/Hud.tsx'
+import { MapView } from './ui/MapView.tsx'
+import { StatusScreen } from './ui/StatusScreen.tsx'
 import { TouchControls } from './ui/TouchControls.tsx'
 
 const isTouchDevice = () => window.matchMedia('(pointer: coarse)').matches
@@ -52,8 +55,12 @@ export function GameView({
   const loadout = useMemo(() => resolveLoadout(character), [character])
   const input = useMemo(() => new InputState(), [])
   const hud = useMemo(() => new HudStore(), [])
+  const map = useMemo(() => new MapStore(), [])
   const touch = useMemo(() => isTouchDevice(), [])
   const [died, setDied] = useState(false)
+  // The status screen or the full map; the game is paused while either is open.
+  const [overlay, setOverlay] = useState<{ kind: 'status'; status: RunStatus } | { kind: 'map' } | null>(null)
+  const gameRef = useRef<Phaser.Game | null>(null)
 
   // The scene outlives renders, so it calls through to whatever the latest handlers are.
   const handlers = useRef({ onProgress, onDied, onDescend })
@@ -85,20 +92,46 @@ export function GameView({
       scale: { mode: Phaser.Scale.RESIZE },
       banner: false,
     })
-    const data: RunSceneData = { seed, floor, loadout, input, hud, sandbox: saveId === null, ...start.current, events }
+    const data: RunSceneData = { seed, floor, loadout, input, hud, map, sandbox: saveId === null, ...start.current, events }
     game.scene.add('run', RunScene, true, data)
-    return () => game.destroy(true)
-  }, [seed, floor, loadout, input, hud, saveId, events])
+    gameRef.current = game
+    return () => {
+      gameRef.current = null
+      game.destroy(true)
+    }
+  }, [seed, floor, loadout, input, hud, map, saveId, events])
 
   usePlayTime(saveId)
 
+  const open = (kind: 'status' | 'map') => {
+    const scene = gameRef.current?.scene.getScene('run') as RunScene | undefined
+    if (!scene || died) return
+    scene.scene.pause()
+    setOverlay(kind === 'status' ? { kind, status: scene.status() } : { kind })
+  }
+  const close = () => {
+    ;(gameRef.current?.scene.getScene('run') as RunScene | undefined)?.scene.resume()
+    setOverlay(null)
+  }
+  const keys = useRef({ open, close, overlay, onQuit })
+  useEffect(() => {
+    keys.current = { open, close, overlay, onQuit }
+  })
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onQuit()
+      const k = keys.current
+      if (e.key === 'Escape') {
+        if (k.overlay) k.close()
+        else k.onQuit()
+      } else if (e.key === 'c' || e.key === 'm') {
+        const kind = e.key === 'c' ? 'status' : 'map'
+        if (k.overlay?.kind === kind) k.close()
+        else if (!k.overlay) k.open(kind)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onQuit])
+  }, [])
 
   return (
     <main className="relative h-full touch-none overflow-hidden bg-void">
@@ -113,40 +146,68 @@ export function GameView({
         </div>
       )}
 
-      <div className={`absolute right-4 flex items-center gap-3 ${touch ? 'top-14' : 'top-4'}`}>
-        <span className="text-[0.6rem] tracking-[0.25em] text-dim uppercase">
-          {biomeForFloor(floor).name} · Floor {floor}
-        </span>
-        {onSandboxLook && (
+      <div className={`absolute right-4 flex flex-col items-end gap-2 ${touch ? 'top-14' : 'top-4'}`}>
+        <div className="flex items-center gap-3">
+          <span className="text-[0.6rem] tracking-[0.25em] text-dim uppercase">
+            {biomeForFloor(floor).name} · Floor {floor}
+          </span>
+          {onSandboxLook && (
+            <button
+              type="button"
+              onClick={onSandboxLook}
+              className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
+            >
+              Look
+            </button>
+          )}
+          {onSandboxDepth && (
+            <button
+              type="button"
+              onClick={onSandboxDepth}
+              className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
+            >
+              Deeper
+            </button>
+          )}
           <button
             type="button"
-            onClick={onSandboxLook}
+            onClick={onQuit}
             className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
           >
-            Look
+            Quit
           </button>
-        )}
-        {onSandboxDepth && (
-          <button
-            type="button"
-            onClick={onSandboxDepth}
-            className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
-          >
-            Deeper
-          </button>
-        )}
+        </div>
+        <button type="button" onClick={() => open('map')} aria-label="Map" className="size-28 overflow-hidden border border-[#b9a77a]/45 bg-black/55 sm:size-32">
+          <MapView store={map} />
+        </button>
         <button
           type="button"
-          onClick={onQuit}
+          onClick={() => open('status')}
           className="border border-line bg-hull/80 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
         >
-          Quit
+          Status
         </button>
       </div>
 
+      {overlay?.kind === 'status' && <StatusScreen loadout={loadout} status={overlay.status} floor={floor} onClose={close} />}
+      {overlay?.kind === 'map' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/85 p-4">
+          <div className="aspect-square w-full max-w-[min(90vw,80vh)] border border-[#b9a77a]/45 bg-black/60">
+            <MapView store={map} full />
+          </div>
+          <button
+            type="button"
+            onClick={close}
+            className="border border-line bg-hull/90 px-4 py-1.5 text-[0.65rem] font-semibold tracking-[0.2em] text-text uppercase hover:border-ember hover:text-ember"
+          >
+            Close
+          </button>
+        </div>
+      )}
+
       {!touch && (
         <p className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 text-center text-[0.6rem] tracking-[0.2em] text-dim uppercase">
-          WASD move · Space roll (hold to sprint) · J / LMB light or cast · K / RMB heavy (hold to charge) · U left hand · L / F skill · Tab / MMB hold: lock on/off, tap: switch target · E / R right / left weapon · Q spell · Esc quit
+          WASD move · Space roll (hold to sprint) · J / LMB light or cast · K / RMB heavy (hold to charge) · U left hand · L / F skill · Tab / MMB hold: lock on/off, tap: switch target · E / R right / left weapon · Q spell · C status · M map · Esc quit
         </p>
       )}
     </main>
