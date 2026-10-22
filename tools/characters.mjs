@@ -157,7 +157,11 @@ const WARRIOR = {
 
 /** Hood with the face lost in shadow and the scarf over the mouth. turn: -1..1 (0 = facing us). */
 function hood(cx, turn, back = false) {
-  let s = P(`M${cx - 13} 34 C${cx - 15} 22 ${cx - 9} 9 ${cx + 1} 8 C${cx + 11} 8.5 ${cx + 15} 20 ${cx + 13} 34 C${cx + 8} 40 ${cx - 8} 40 ${cx - 13} 34 Z`, 'url(#hoodG)')
+  // The cowl drapes down over the neck onto the shoulders, joining the hood to the body.
+  let s = P(`M${cx - 13} 32 C${cx - 16} 38 ${cx - 20} 44 ${cx - 21} 50 C${cx - 12} 54 ${cx + 12} 54 ${cx + 21} 50 C${cx + 20} 44 ${cx + 16} 38 ${cx + 13} 32 Z`, 'url(#hoodG)')
+  s += line(`M${cx - 20} 49.5 C${cx - 12} 53.5 ${cx + 12} 53.5 ${cx + 20} 49.5`, '#3f8a8a', 1.2, 0.7)
+  s += line(`M${cx - 8} 40 C${cx - 10} 44 ${cx - 12} 48 ${cx - 13} 51 M${cx + 8} 40 C${cx + 10} 44 ${cx + 12} 48 ${cx + 13} 51`, '#0d0a07', 0.8, 0.5)
+  s += P(`M${cx - 13} 34 C${cx - 15} 22 ${cx - 9} 9 ${cx + 1} 8 C${cx + 11} 8.5 ${cx + 15} 20 ${cx + 13} 34 C${cx + 8} 40 ${cx - 8} 40 ${cx - 13} 34 Z`, 'url(#hoodG)')
   s += line(`M${cx - 10} 30 C${cx - 11} 21 ${cx - 7} 13 ${cx - 1} 11`, '#8a7a62', 1, 0.5)
   if (back) {
     s += line(`M${cx} 9 C${cx + 1} 18 ${cx} 28 ${cx - 1} 38`, '#0d0a07', 1, 0.6)

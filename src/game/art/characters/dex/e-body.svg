@@ -34,6 +34,9 @@
     <path d="M43 46 C46 42 51 40.5 55 41" stroke="#a37a52" stroke-width="0.8" stroke-opacity="0.6" fill="none"/>
     <circle cx="46" cy="49" r="0.8" fill="#c9cdd1" stroke-width="0.4"/>
     <circle cx="52" cy="49.5" r="0.8" fill="#c9cdd1" stroke-width="0.4"/>
+    <path d="M38 32 C35 38 31 44 30 50 C39 54 63 54 72 50 C71 44 67 38 64 32 Z" fill="url(#hoodG)"/>
+    <path d="M31 49.5 C39 53.5 63 53.5 71 49.5" stroke="#3f8a8a" stroke-width="1.2" stroke-opacity="0.7" fill="none"/>
+    <path d="M43 40 C41 44 39 48 38 51 M59 40 C61 44 63 48 64 51" stroke="#0d0a07" stroke-width="0.8" stroke-opacity="0.5" fill="none"/>
     <path d="M38 34 C36 22 42 9 52 8 C62 8.5 66 20 64 34 C59 40 43 40 38 34 Z" fill="url(#hoodG)"/>
     <path d="M41 30 C40 21 44 13 50 11" stroke="#8a7a62" stroke-width="1" stroke-opacity="0.5" fill="none"/>
     <path d="M51 20 C49 15 63 15 61 20 L62 30 C58 32 54 32 50 30 Z" fill="#0b0908"/>
