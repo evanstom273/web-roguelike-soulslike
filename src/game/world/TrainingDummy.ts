@@ -8,7 +8,7 @@ import type { Vec } from './floorGeometry.ts'
 // Something to hit: takes damage and statuses like an enemy, never fights back, and
 // stands back up a few seconds after being beaten. Placeholder visuals.
 
-const RADIUS = 26
+const RADIUS = 39
 
 export class TrainingDummy {
   readonly target: Target
@@ -41,15 +41,15 @@ export class TrainingDummy {
     g.clear()
     // Post seen from above: a wooden disc with a crossbar.
     g.fillStyle(0x000000, 0.35)
-    g.fillCircle(x + 3, y + 4, RADIUS + 4)
+    g.fillCircle(x + 4, y + 6, RADIUS + 6)
     g.fillStyle(a.alive ? 0x6b4a2e : 0x3a2a1c, 1)
     g.fillCircle(x, y, RADIUS)
-    g.lineStyle(3, 0x2a1b10, 1)
+    g.lineStyle(4, 0x2a1b10, 1)
     g.strokeCircle(x, y, RADIUS)
     g.fillStyle(0x8a6440, 1)
-    g.fillRect(x - RADIUS - 10, y - 5, RADIUS * 2 + 20, 10)
+    g.fillRect(x - RADIUS - 15, y - 7.5, RADIUS * 2 + 30, 15)
     g.fillStyle(0x4d3420, 1)
-    g.fillCircle(x, y, 9)
+    g.fillCircle(x, y, 13.5)
 
     // Health and status meters above it.
     const w = 90

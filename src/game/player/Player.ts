@@ -42,11 +42,11 @@ type State =
   | { kind: 'channel' } // a beam / tether / held cone is running
   | { kind: 'dash' } // a dash spell is moving us
 
-const RADIUS = 20 // collision circle
+const RADIUS = 30 // collision circle
 // Each hand relative to body centre (facing +x), and the angle its weapon rests at.
 const HANDS: Record<Hand, { x: number; y: number; rest: number }> = {
-  right: { x: 14.5, y: 11.5, rest: 0.5 },
-  left: { x: 12.5, y: -11.5, rest: -0.5 },
+  right: { x: 21.75, y: 17.25, rest: 0.5 },
+  left: { x: 18.75, y: -17.25, rest: -0.5 },
 }
 const REST_ANGLE = HANDS.right.rest
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
@@ -808,7 +808,7 @@ export class Player implements Caster {
   private drawChargeGlow() {
     const c = this.charge
     const art = this.weapon.art
-    const tip = this.weaponTip(REST_ANGLE + 1.9, art.width - art.grip.x - 4)
+    const tip = this.weaponTip(REST_ANGLE + 1.9, art.width - art.grip.x - 6)
     this.fx.fillStyle(0xff3d8b, 0.15 + 0.25 * c)
     this.fx.fillCircle(tip.x, tip.y, 6 + 12 * c)
     this.fx.lineStyle(2, 0xff3d8b, 0.3 + 0.5 * c)

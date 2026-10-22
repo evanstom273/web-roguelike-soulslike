@@ -44,7 +44,7 @@ export class RunScene extends Phaser.Scene {
 
   preload() {
     // Rasterised at native size: 1 SVG unit = 1 world pixel.
-    this.load.svg('player', playerUrl, { width: 64, height: 64 })
+    this.load.svg('player', playerUrl, { width: 96, height: 96 })
     for (const w of this.run.loadout.weapons) {
       this.load.svg(weaponTextureKey(w.id), w.art.url, { width: w.art.width, height: w.art.height })
     }
