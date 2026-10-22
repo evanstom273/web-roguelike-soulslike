@@ -26,16 +26,6 @@
     <path d="M36 47 C40 45 44 44.5 46 44.5" stroke="#eef0f2" stroke-width="1" stroke-opacity="0.8" fill="none"/>
     <path d="M30.5 70 L65.5 70 L65.5 75 L30.5 75 Z" fill="url(#leatherG)"/>
     <rect x="45.5" y="70.5" width="5" height="4" fill="#b08a3e" stroke-width="0.7"/>
-    <path d="M23 50 L32 50 L33 71 L24 71 Z" fill="url(#steel)"/>
-    <path d="M64 50 L73 50 L72 71 L63 71 Z" fill="url(#steelD)"/>
-    <circle cx="28" cy="67" r="3.4" fill="url(#steel)"/>
-    <circle cx="68" cy="67" r="3.4" fill="url(#steelD)"/>
-    <path d="M23.5 70 L32.5 70 L32 80 L24.5 80 Z" fill="url(#steelD)"/>
-    <path d="M63.5 70 L72.5 70 L71.5 80 L64 80 Z" fill="url(#steelD)"/>
-    <path d="M23 79 L33 79 L33 87 C30 89.5 26 89.5 23 87 Z" fill="url(#steel)"/>
-    <path d="M24.5 83 L31.5 83" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
-    <path d="M63 79 L73 79 L73 87 C70 89.5 66 89.5 63 87 Z" fill="url(#steelD)"/>
-    <path d="M64.5 83 L71.5 83" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
     <path d="M15 53 C13 43 21 36.5 34 38 C38.5 40 38.5 46 35.5 50 C28 53 21 54 15 53 Z" fill="url(#steel)"/>
     <path d="M16 53 C22 55.5 30 55.5 35.5 51.5 L35 56 C29 58.5 21.5 58.5 16.5 56.5 Z" fill="url(#steelD)"/>
     <path d="M17 56.5 C22 59 29 59 34.5 56 L34 60 C28.5 62 22 62 17.5 60 Z" fill="url(#steelD)"/>

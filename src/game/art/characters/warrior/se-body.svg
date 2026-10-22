@@ -26,11 +26,6 @@
     <path d="M38 47 C42 45 46 44.5 49 44.5" stroke="#eef0f2" stroke-width="1" stroke-opacity="0.8" fill="none"/>
     <path d="M33 70 L63.5 70 L63.5 75 L33 75 Z" fill="url(#leatherG)"/>
     <rect x="50" y="70.5" width="5" height="4" fill="#b08a3e" stroke-width="0.7"/>
-    <path d="M30 51 L39 51 L41 73 L33 74 Z" fill="url(#steel)"/>
-    <circle cx="36.5" cy="70" r="3.4" fill="url(#steel)"/>
-    <path d="M33 73 L41 72 L42 87 L35 88 Z" fill="url(#steelD)"/>
-    <path d="M34.5 85 L44.5 85 L44.5 93 C41.5 95.5 37.5 95.5 34.5 93 Z" fill="url(#steel)"/>
-    <path d="M36 89 L43 89" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
     <path d="M22 53 C20 43 28 36.5 41 38 C45.5 40 45.5 46 42.5 50 C35 53 28 54 22 53 Z" fill="url(#steel)"/>
     <path d="M23 53 C29 55.5 37 55.5 42.5 51.5 L42 56 C36 58.5 28.5 58.5 23.5 56.5 Z" fill="url(#steelD)"/>
     <path d="M24 56.5 C29 59 36 59 41.5 56 L41 60 C35.5 62 29 62 24.5 60 Z" fill="url(#steelD)"/>

@@ -18,16 +18,6 @@
     <pattern id="mail" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#3d4145"/><circle cx="1.5" cy="1.5" r="0.9" fill="#80858a"/></pattern>
   </defs>
   <g stroke="#16181a" stroke-width="1.2" stroke-linejoin="round">
-    <path d="M24.5 50 L33.5 50 L32 74 L24 74 Z" fill="url(#quiltG)"/>
-    <path d="M23.5 73 L32.5 73 L32 82 L24 82 Z" fill="url(#leatherG)"/>
-    <circle cx="28" cy="77" r="0.8" fill="#c9cdd1" stroke-width="0.4"/>
-    <path d="M62.5 50 L71.5 50 L72 74 L64 74 Z" fill="url(#quiltG)"/>
-    <path d="M63.5 73 L72.5 73 L72 82 L64 82 Z" fill="url(#leatherG)"/>
-    <circle cx="68" cy="77" r="0.8" fill="#c9cdd1" stroke-width="0.4"/>
-    <path d="M23 80 L33 80 L33 88 C30 90.5 26 90.5 23 88 Z" fill="#3a2716"/>
-    <path d="M24.5 84 L31.5 84" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
-    <path d="M63 80 L73 80 L73 88 C70 90.5 66 90.5 63 88 Z" fill="#2c1d10"/>
-    <path d="M64.5 84 L71.5 84" stroke="#16181a" stroke-width="0.7" stroke-opacity="1" fill="none"/>
     <path d="M37 44 C42 41 54 41 59 44 L61 76 L63 90 C56 92 40 92 33 90 L35 76 Z" fill="url(#quiltG)"/>
     <path d="M41.5 46 L41.5 88" stroke="#2a1f14" stroke-width="0.8" stroke-opacity="0.5" fill="none"/>
     <path d="M48 46 L48 88" stroke="#2a1f14" stroke-width="0.8" stroke-opacity="0.5" fill="none"/>

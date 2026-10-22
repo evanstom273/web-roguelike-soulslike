@@ -18,6 +18,5 @@
     <pattern id="mail" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#3d4145"/><circle cx="1.5" cy="1.5" r="0.9" fill="#80858a"/></pattern>
   </defs>
   <g stroke="#16181a" stroke-width="1.2" stroke-linejoin="round">
-    <path d="M36 68 C39 66 43 67 44.5 70 C44.5 74 42 76.5 39 76 C36 75 35 72 36 68 Z" fill="url(#skinG)" stroke="#3a2c1e"/>
   </g>
 </svg>
