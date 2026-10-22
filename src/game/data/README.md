@@ -1,7 +1,7 @@
 # Game data
 
-Weapons, spells and statuses are data: one TypeScript file per thing, default-exporting
-a definition. Files in these folders are picked up automatically; there's no list to
+Weapons, spells, statuses and enemies are data: one TypeScript file per thing,
+default-exporting a definition. Files in these folders are picked up automatically; there's no list to
 update.
 
 | Folder | Helper | Schema (`types.ts`) |
@@ -9,6 +9,7 @@ update.
 | `weapons/` | `defineWeapon` | `WeaponDef` |
 | `spells/` | `defineSpell` | `SpellDef` (a cast plus one of 17 deliveries) |
 | `statuses/` | `defineStatus` | `StatusDef` |
+| `enemies/` | `defineEnemy` | `EnemyDef` (vitals, movement, sight, moves, rune drop) |
 
 Also here:
 
@@ -17,10 +18,16 @@ Also here:
 - `damageTypes.ts`: physical, magic, fire, lightning, holy.
 - `player.ts`: the player's vitals and movement.
 - `trainingDummy.ts`: the practice target's vitals.
-- `progression.ts`: level-up cost curve.
+- `progression.ts`: level-up and weapon-upgrade costs, and the checkpoint-start price.
+- `difficulty.ts`: how enemies toughen with depth and run time, and how rune drops grow.
+
+Enemy art is rendered by `tools/rig` (a model in `tools/rig/models/`, named by the enemy's
+`look`); the weapon in its hand is just for show, its attacks are its moves. A move is
+either a melee `attack` or a `spell` id to cast.
 
 Ids must be unique per kind. Missing fields and unknown attributes fail the build;
-duplicate ids, unknown statuses and bad basic-spell references fail on load.
+duplicate ids, unknown statuses, weapons or spells, and bad basic-spell references fail
+on load.
 
 ## Where the numbers came from
 

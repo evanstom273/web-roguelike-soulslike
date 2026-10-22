@@ -24,8 +24,10 @@ export interface SaveFile {
   character: Character
   runes: number // carried right now; lost if not spent after death
   floor: number // the floor the current run is on
-  deepestFloorCleared: number // furthest boss beaten, for checkpoint starts
+  deepestFloorCleared: number // deepest floor whose way down was taken, for checkpoint starts
   seed: string // the current floor's seed
+  runTime?: number // seconds into the current run (enemies toughen with it); older saves lack it
+  dead?: boolean // died and hasn't left the post-death screen yet
 }
 
 export const db = new Dexie('web-roguelike-soulslike') as Dexie & {

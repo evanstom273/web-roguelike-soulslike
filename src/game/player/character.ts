@@ -4,7 +4,7 @@ import { getSpell, getWeapon, SPELLS, WEAPONS } from '../data/registry.ts'
 import type { SpellDef, WeaponDef } from '../data/types.ts'
 
 // Everything about the player that persists between runs or gets changed in menus:
-// attribute levels (bought on the post-death screen) and equipment.
+// attribute levels and weapon upgrades (bought on the post-death screen) and equipment.
 export interface Character {
   /** Whose art to draw: a class id (warrior, dex, magic). */
   appearance: string
@@ -13,6 +13,10 @@ export interface Character {
   right: string
   left: string | null // null = empty-handed
   spellIds: string[] // attuned spells, cycled in order (basic spells come with catalysts)
+  /** Upgrade level of each owned weapon, by id (missing = +0). */
+  weaponLevels: Record<string, number>
+  /** Smithing shards held, for weapon upgrades. Kept through death, unlike runes. */
+  shards: number
 }
 
 export interface Loadout {
@@ -23,6 +27,7 @@ export interface Loadout {
   right: WeaponDef
   left: WeaponDef | null
   spells: SpellDef[]
+  weaponLevels: Record<string, number>
 }
 
 /**
@@ -36,6 +41,8 @@ export const sandboxCharacter = (appearance = 'warrior'): Character => ({
   right: 'straight-sword',
   left: 'shield',
   spellIds: [...SPELLS.values()].filter((s) => !s.basic).map((s) => s.id).sort(),
+  weaponLevels: {},
+  shards: 0,
 })
 
 /** A fresh character of the given class, wearing its starting kit. */
@@ -46,6 +53,8 @@ export const classCharacter = (c: ClassDef): Character => ({
   right: c.right,
   left: c.left,
   spellIds: [...c.spellIds],
+  weaponLevels: {},
+  shards: 0,
 })
 
 export function resolveLoadout(c: Character): Loadout {
@@ -58,5 +67,14 @@ export function resolveLoadout(c: Character): Loadout {
     right: getWeapon(c.right),
     left: c.left ? getWeapon(c.left) : null,
     spells: [...basics, ...c.spellIds.map(getSpell)],
+    weaponLevels: c.weaponLevels,
   }
 }
+
+/** Fills in fields added since a save was made. */
+export const upgradeCharacter = (c: Character, classId: string): Character => ({
+  ...c,
+  appearance: c.appearance ?? classId,
+  weaponLevels: c.weaponLevels ?? {},
+  shards: c.shards ?? 0,
+})

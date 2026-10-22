@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser'
 import { meetsRequirements } from '../data/attributes.ts'
 import { scalingMultiplier } from '../data/damage.ts'
+import { upgradeMultiplier } from '../data/progression.ts'
 import type { DamageMap } from '../data/damageTypes.ts'
 import { PLAYER_MOVEMENT as MOVE, PLAYER_VITALS } from '../data/player.ts'
 import type { AttackDef, SpellDef, StatusDef, WeaponDef } from '../data/types.ts'
@@ -11,7 +12,7 @@ import type { ActionButton } from '../input.ts'
 import { resolveWalls, type Segment, type Vec } from '../world/floorGeometry.ts'
 import { facing8, LAYER, standingDepth } from '../world/projection.ts'
 import type { Loadout } from './character.ts'
-import { CharacterArt, onScreen, type CharacterAnim, type HandPose, type Vec3 } from './characterArt.ts'
+import { CharacterArt, holdWeapon, onScreen, type CharacterAnim, type HandPose, type Vec3 } from './characterArt.ts'
 
 // The player character: movement, dodge, melee, casting. Feel and numbers follow the
 // Godot version (data/player.ts); weapons and spells come from the loadout's data.
@@ -43,6 +44,8 @@ type State =
   | { kind: 'cast'; t: number; spell: SpellDef; released: boolean; hand: Hand }
   | { kind: 'channel' } // a beam / tether / held cone is running
   | { kind: 'dash' } // a dash spell is moving us
+  | { kind: 'stagger'; t: number; vx: number; vy: number } // poise broken: knocked back, can't act
+  | { kind: 'dead'; t: number }
 
 const RADIUS = 30 // collision circle
 // Walking plays one full stride (both feet) per this many px travelled; idle breathes over
@@ -55,6 +58,7 @@ const STRIKE_START = 0.35
 const STRIKE_END = 0.6
 const HELD_WINDUP = 0.3
 const HURT_TIME = 0.18
+const DEATH_FALL = 1 // seconds the death animation takes
 // Animations where a weapon with its own resting angle (art.rest) is held at it.
 const RESTING = new Set<CharacterAnim>(['idle', 'walk', 'hurt'])
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
@@ -138,6 +142,7 @@ export class Player implements Caster {
     this.actor.onDamaged = (_n, periodic) => {
       if (!periodic) this.hurt = HURT_TIME
     }
+    this.actor.onStagger = (knockback, source) => this.stagger(knockback, source)
     this.self = world.add({ actor: this.actor, team: 'player', x: this.x, y: this.y, radius: RADIUS })
 
     this.trailGfx = scene.add.graphics().setDepth(LAYER.trail)
@@ -176,6 +181,10 @@ export class Player implements Caster {
 
   get hp() {
     return this.actor.hp
+  }
+
+  get dead() {
+    return this.state.kind === 'dead'
   }
 
   get maxHp() {
@@ -306,6 +315,12 @@ export class Player implements Caster {
       if (im && (im.remaining -= dt) <= 0) this.imbues[h] = null
     }
     this.actor.update(dt)
+    if (!this.actor.alive && this.state.kind !== 'dead') this.die()
+    if (this.state.kind === 'dead') {
+      this.state.t += dt
+      this.render(dt)
+      return
+    }
 
     if (this.state.kind === 'free') {
       if (intent.cycleWeapon) this.cycleWeapon('right')
@@ -441,16 +456,49 @@ export class Player implements Caster {
       case 'dash':
         this.vx = this.vy = 0
         break
+      case 'stagger': {
+        // Knocked back, slowing to a stop, until the stagger wears off.
+        const s = this.state
+        this.moveTo(this.x + s.vx * dt, this.y + s.vy * dt)
+        const v = Math.hypot(s.vx, s.vy)
+        const slowed = Math.max(0, v - PLAYER_VITALS.knockbackDeceleration * dt)
+        if (v > 0) {
+          s.vx *= slowed / v
+          s.vy *= slowed / v
+        }
+        s.t += dt
+        if (s.t >= PLAYER_VITALS.staggerDuration) this.state = { kind: 'free' }
+        break
+      }
     }
 
-    // Locked on: face the target whatever you're doing, except mid-roll or mid-dash.
-    if (this.lockedTarget && this.state.kind !== 'roll' && this.state.kind !== 'dash') this.facing = this.aim()
+    // Locked on: face the target whatever you're doing, except mid-roll, mid-dash or staggered.
+    if (this.lockedTarget && this.state.kind !== 'roll' && this.state.kind !== 'dash' && this.state.kind !== 'stagger') this.facing = this.aim()
 
     this.regenStamina(dt)
     this.self.x = this.x
     this.self.y = this.y
     if (this.notice && this.time > this.notice.until) this.notice = null
     this.render(dt)
+  }
+
+  /** Poise broken by a blow: knocked back away from it and unable to act for a moment. */
+  private stagger(knockback: number, source: Vec | undefined) {
+    if (this.state.kind === 'dead' || this.state.kind === 'roll' || this.state.kind === 'dash') return
+    if (this.state.kind === 'channel') this.spells.cancelChannels(this)
+    const away = source ? Math.atan2(this.y - source.y, this.x - source.x) : this.facing + Math.PI
+    this.vx = this.vy = 0
+    this.buffered = null
+    this.state = { kind: 'stagger', t: 0, vx: Math.cos(away) * knockback, vy: Math.sin(away) * knockback }
+  }
+
+  private die() {
+    if (this.state.kind === 'channel' || this.state.kind === 'dash') this.spells.cancelChannels(this)
+    this.state = { kind: 'dead', t: 0 }
+    this.vx = this.vy = 0
+    this.buffered = null
+    this.lockedTarget = null
+    this.trail = []
   }
 
   private say(text: string) {
@@ -569,7 +617,11 @@ export class Player implements Caster {
       if (len > 1e-6 && (Math.cos(this.facing) * ox + Math.sin(this.facing) * oy) / len < Math.cos(degToRad(a.arc / 2))) continue
       if (!this.world.visible(this, t)) continue
       s.hits.add(t)
-      this.world.hit(t, { attack: a, ctx: { levels: this.levels, bonus: this.imbues[s.hand]?.bonus ?? null } })
+      this.world.hit(t, {
+        attack: a,
+        ctx: { levels: this.levels, multiplier: this.upgrade(s.hand), bonus: this.imbues[s.hand]?.bonus ?? null },
+        source: { x: this.x, y: this.y },
+      })
     }
   }
 
@@ -627,7 +679,13 @@ export class Player implements Caster {
   /** Spell damage multiplier from the casting hand's catalyst: its power times its scaling bonus. */
   private spellPower(hand: Hand): number {
     const cat = this.held(hand)?.catalyst
-    return cat ? cat.power * scalingMultiplier(cat.scaling, this.levels) : 1
+    return cat ? cat.power * scalingMultiplier(cat.scaling, this.levels) * this.upgrade(hand) : 1
+  }
+
+  /** Damage multiplier from the upgrade level of the weapon in a hand (not applied to imbues). */
+  private upgrade(hand: Hand): number {
+    const id = hand === 'right' ? this.rightId : this.leftId
+    return upgradeMultiplier(id ? (this.loadout.weaponLevels[id] ?? 0) : 0)
   }
 
   /** Where placed spells land: ahead of you, stopping short of walls. */
@@ -792,6 +850,10 @@ export class Player implements Caster {
   private animation(dt: number): { anim: CharacterAnim; t: number } {
     const s = this.state
     switch (s.kind) {
+      case 'dead':
+        return { anim: 'death', t: Math.min(1, s.t / DEATH_FALL) }
+      case 'stagger':
+        return { anim: 'hurt', t: s.t < PLAYER_VITALS.staggerDuration / 2 ? 1 : 0.5 }
       case 'roll':
         return { anim: 'roll', t: s.t / MOVE.dodgeDuration }
       case 'heavyHold':
@@ -842,19 +904,7 @@ export class Player implements Caster {
     const w = this.held(hand)
     img.setVisible(!!w && !hidden)
     if (!w || hidden) return false
-    img.setPosition(h.x, h.y)
-    if (w.art.upright) {
-      // Shields stay upright, facing the way the body does: narrow side-on.
-      img.setRotation(0).setScale(Math.max(0.4, Math.abs(Math.sin((d * Math.PI) / 4))), 1).setFlipY(false)
-      return h.depth > 0
-    }
-    // Blades turn and foreshorten with the drawn arm. Pointing left they're flipped so the
-    // edge and the baked light stay the right way up.
-    const dir = this.bladeDir(hand, h, d, anim)
-    const { angle, scale } = onScreen(dir)
-    img.setRotation(angle).setScale(Math.max(0.25, scale), 1).setFlipY(Math.cos(angle) < 0)
-    // In front of the body when the hand, or enough of the blade, is on the camera's side of it.
-    return h.depth + dir.y * (w.art.width - w.art.grip.x) * 0.3 > 0
+    return holdWeapon(img, w, h, this.bladeDir(hand, h, d, anim), d)
   }
 
   /**

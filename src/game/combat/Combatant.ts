@@ -13,6 +13,8 @@ export interface HitPayload {
   periodic?: boolean
   /** Exact damage, skipping the formula (max-HP burn ticks). */
   exactDamage?: number
+  /** Where the blow came from, for knockback. */
+  source?: { x: number; y: number }
 }
 
 export interface HitOutcome {
@@ -71,7 +73,7 @@ export class Combatant {
   private isInvulnerable: () => boolean
 
   onDamaged: ((amount: number, periodic: boolean) => void) | null = null
-  onStagger: ((knockback: number) => void) | null = null
+  onStagger: ((knockback: number, source: { x: number; y: number } | undefined) => void) | null = null
   onHealed: ((amount: number) => void) | null = null
   onStaminaRestored: ((amount: number) => void) | null = null
 
@@ -120,7 +122,7 @@ export class Combatant {
         if (this.poise <= 0) {
           this.poise = this.vitals.poise
           staggered = true
-          this.onStagger?.(hit.attack.knockback)
+          this.onStagger?.(hit.attack.knockback, hit.source)
         }
       }
     }

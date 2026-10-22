@@ -57,6 +57,17 @@ body {
 }
 
 /* Embers lifting off the braziers: seen from above they drift on the air and burn out. */
+@keyframes you-died {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes ember-drift {
   0% { transform: translate(0, 0) scale(1); opacity: 0; }
   12% { opacity: 1; }

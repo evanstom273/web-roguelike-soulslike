@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { SHARD_NAME } from '../data/progression.ts'
 import { WEAPONS } from '../data/registry.ts'
 import type { WeaponDef } from '../data/types.ts'
 import type { HudStore } from '../hudStore.ts'
@@ -123,7 +124,26 @@ export function Hud({ store, touch, input }: { store: HudStore; touch: boolean; 
           <circle cx="10" cy="10" r="2.2" fill="#d8c690" />
         </svg>
         <span className="font-ui text-sm tracking-[0.15em] text-[#e9dfc0] tabular-nums">{s.runes}</span>
+        {s.shards > 0 && (
+          <span className="ml-2 flex items-center gap-1 border-l border-[#b9a77a]/30 pl-2" title={`${SHARD_NAME}s found this run`}>
+            <svg viewBox="0 0 20 20" className="size-3.5" aria-hidden>
+              <path d="M7 2 L14 6 L12 18 L5 13 Z" fill="#9fd3e0" stroke="#e6f4f7" strokeWidth="1" />
+            </svg>
+            <span className="font-ui text-sm text-[#cfe9ef] tabular-nums">{s.shards}</span>
+          </span>
+        )}
       </div>
+
+      {s.atExit && (
+        <button
+          type="button"
+          onClick={() => input.requestDescend()}
+          className="pointer-events-auto absolute bottom-[40%] left-1/2 flex -translate-x-1/2 flex-col items-center border border-ember bg-black/70 px-6 py-2.5 hover:bg-ember/20"
+        >
+          <span className="font-display text-sm font-bold tracking-[0.3em] text-ember uppercase">Descend</span>
+          {!touch && <span className="text-[0.55rem] tracking-[0.25em] text-dim uppercase">Enter</span>}
+        </button>
+      )}
 
       {s.notice && (
         <div className="absolute bottom-[38%] left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 text-xs tracking-[0.3em] text-[#e9dfc0] uppercase">

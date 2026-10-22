@@ -17,6 +17,7 @@ export const standingDepth = (y: number) => 10 + Math.max(0, Math.min(2, (y + 20
 
 // Layers above and below the standing band.
 export const LAYER = {
+  floorProp: 2.5, // things set into the floor (the stairwell down): over floor decals
   backWall: 5, // wall faces behind everything that stands
   vfxGround: 9, // spell zones and telegraphs, on the floor under characters
   trail: 9.5,

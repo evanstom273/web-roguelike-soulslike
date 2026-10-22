@@ -19,6 +19,8 @@ export async function createSave(cls: ClassDef): Promise<Save> {
     floor: 1,
     deepestFloorCleared: 0,
     seed: randomSeed(),
+    runTime: 0,
+    dead: false,
   }
   const id = await db.saves.add(save)
   return { ...save, id: id as number }

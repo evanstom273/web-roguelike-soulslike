@@ -26,6 +26,7 @@
 - Each floor ends with a boss that must be defeated to access the next floor.
 - Death normally ends the current run and returns the player to the beginning, unless they purchase an available checkpoint start for their next run.
 - Floor count, dungeon layout algorithm, and final-ending/endless structure are not yet decided.
+- Until bosses are designed, reaching the boss room opens the way down to the next floor, and that counts as finishing the floor for checkpoints.
 
 ## 4. Enemy difficulty, time and progression
 
@@ -46,6 +47,7 @@
 - Any runes left unspent when the player exits the post-death menu are lost permanently; they do not carry into the next run.
 - There is no recovering those lost runes from the place of death.
 - Exact attribute roster, costs and progression curve are not decided.
+- Weapons can be upgraded on the post-death screen, following Ashen Vow's system: runes plus a smithing material that enemies drop, up to +10, each level adding to the weapon's damage.
 
 ## 6. Purchasable checkpoint starts
 
@@ -59,6 +61,7 @@
 
 - This document captures established direction, not a licence to invent additional gameplay systems.
 - No decision has been made on starting equipment, loot, inventory, enemy types, boss designs, floor count, specific stat formulas, checkpoint permanence, or a final boss/endless mode.
+- The enemy roster will come from the creator; until then a single placeholder enemy stands in. Enemies get 3D-posed frame art like the player, with mockups approved before they go in.
 - Do not silently treat assistant-generated examples or suggestions as approved game mechanics.
 
 ---

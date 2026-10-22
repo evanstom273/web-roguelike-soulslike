@@ -53,6 +53,16 @@ export function buildFrame(cls, anim, facing, t, rest) {
   }
   const model = new Model()
   cls.build(model, sk, pose)
-  for (const m of model.meshes) if (!m.world) m.verts = m.verts.map(move)
+  const origin = move(V(0, 0, 0))
+  for (const m of model.meshes) {
+    if (m.world) continue
+    m.verts = m.verts.map(move)
+    // Faces remember which way is out (an axis, a centre or a normal): turn those too.
+    for (const f of m.faces) {
+      if (f.axis) f.axis = f.axis.map(move)
+      if (f.centre) f.centre = move(f.centre)
+      if (f.normal) f.normal = sub(move(f.normal), origin)
+    }
+  }
   return { pose, sk, model, move }
 }

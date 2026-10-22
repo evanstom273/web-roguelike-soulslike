@@ -1,15 +1,18 @@
 import * as Phaser from 'phaser'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { addPlayTime } from '../storage/saves.ts'
 import { HudStore } from './hudStore.ts'
 import { InputState } from './input.ts'
 import { resolveLoadout, type Character } from './player/character.ts'
-import { RunScene, type RunSceneData } from './RunScene.ts'
+import { RunScene, type RunEvents, type RunProgress, type RunSceneData } from './RunScene.ts'
 import { biomeForFloor } from './world/biomes.ts'
 import { Hud } from './ui/Hud.tsx'
 import { TouchControls } from './ui/TouchControls.tsx'
 
 const isTouchDevice = () => window.matchMedia('(pointer: coarse)').matches
+
+// After dying, the death message holds this long before the post-death screen.
+const DEATH_HOLD_MS = 4200
 
 /** `saveId` null = sandbox: nothing is recorded. */
 export function GameView({
@@ -17,6 +20,11 @@ export function GameView({
   floor,
   character,
   saveId,
+  runes,
+  runTime,
+  onProgress,
+  onDied,
+  onDescend,
   onQuit,
   onSandboxDepth,
   onSandboxLook,
@@ -25,6 +33,15 @@ export function GameView({
   floor: number
   character: Character
   saveId: number | null
+  /** Runes carried and seconds into the run, carried over from earlier floors. */
+  runes: number
+  runTime: number
+  /** Worth saving: a kill, every few seconds, and the moment of death (dead = true). */
+  onProgress: (p: RunProgress, dead: boolean) => void
+  /** Died: shown once the death message has held for a moment. */
+  onDied: (p: RunProgress) => void
+  /** Took the way down to the next floor. */
+  onDescend: (p: RunProgress) => void
   onQuit: () => void
   /** Sandbox only: jump to the next biome. */
   onSandboxDepth?: () => void
@@ -36,6 +53,29 @@ export function GameView({
   const input = useMemo(() => new InputState(), [])
   const hud = useMemo(() => new HudStore(), [])
   const touch = useMemo(() => isTouchDevice(), [])
+  const [died, setDied] = useState(false)
+
+  // The scene outlives renders, so it calls through to whatever the latest handlers are.
+  const handlers = useRef({ onProgress, onDied, onDescend })
+  useEffect(() => {
+    handlers.current = { onProgress, onDied, onDescend }
+  })
+  const deathTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(deathTimer.current), [])
+  const events = useMemo<RunEvents>(
+    () => ({
+      onProgress: (p) => handlers.current.onProgress(p, false),
+      onDied: (p) => {
+        handlers.current.onProgress(p, true)
+        setDied(true)
+        deathTimer.current = window.setTimeout(() => handlers.current.onDied(p), DEATH_HOLD_MS)
+      },
+      onDescend: (p) => handlers.current.onDescend(p),
+    }),
+    [],
+  )
+  // Captured once per game: changing them mid-run would restart the scene.
+  const start = useRef({ runes, runTime })
 
   useEffect(() => {
     const game = new Phaser.Game({
@@ -45,10 +85,10 @@ export function GameView({
       scale: { mode: Phaser.Scale.RESIZE },
       banner: false,
     })
-    const data: RunSceneData = { seed, floor, loadout, input, hud }
+    const data: RunSceneData = { seed, floor, loadout, input, hud, sandbox: saveId === null, ...start.current, events }
     game.scene.add('run', RunScene, true, data)
     return () => game.destroy(true)
-  }, [seed, floor, loadout, input, hud])
+  }, [seed, floor, loadout, input, hud, saveId, events])
 
   usePlayTime(saveId)
 
@@ -66,6 +106,12 @@ export function GameView({
       {touch && <TouchControls input={input} />}
       {/* Above the touch layer: it only catches touches on the tappable cross slots. */}
       <Hud store={hud} touch={touch} input={input} />
+
+      {died && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.35),rgba(0,0,0,0.85))] animate-[you-died_1.6s_ease-out_both]">
+          <span className="font-display text-4xl font-bold tracking-[0.35em] text-blood uppercase drop-shadow-[0_4px_18px_rgba(0,0,0,0.9)] sm:text-6xl">You died</span>
+        </div>
+      )}
 
       <div className={`absolute right-4 flex items-center gap-3 ${touch ? 'top-14' : 'top-4'}`}>
         <span className="text-[0.6rem] tracking-[0.25em] text-dim uppercase">
