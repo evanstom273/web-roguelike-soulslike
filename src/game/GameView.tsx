@@ -40,8 +40,9 @@ export function GameView({ seed, character, onQuit }: { seed: string; character:
   return (
     <main className="relative h-full touch-none overflow-hidden bg-void">
       <div ref={host} className="absolute inset-0" />
-      <Hud store={hud} touch={touch} input={input} />
       {touch && <TouchControls input={input} />}
+      {/* Above the touch layer: it only catches touches on the tappable cross slots. */}
+      <Hud store={hud} touch={touch} input={input} />
 
       <div className={`absolute right-4 flex items-center gap-3 ${touch ? 'top-14' : 'top-4'}`}>
         <span className="text-[0.6rem] tracking-[0.25em] text-dim uppercase">Seed {seed}</span>
@@ -56,7 +57,7 @@ export function GameView({ seed, character, onQuit }: { seed: string; character:
 
       {!touch && (
         <p className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 text-center text-[0.6rem] tracking-[0.2em] text-dim uppercase">
-          WASD move · Space roll (hold to sprint) · J / LMB light or cast · K / RMB heavy (hold to charge) · L / F skill · E weapon · Q spell · Esc quit
+          WASD move · Space roll (hold to sprint) · J / LMB light or cast · K / RMB heavy (hold to charge) · L / F skill · Tab / MMB lock on · E weapon · Q spell · Esc quit
         </p>
       )}
     </main>

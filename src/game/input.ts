@@ -1,7 +1,7 @@
 // Shared input state. Keyboard/mouse (in the Phaser scene) and the touch overlay
 // (in React) both write into it; the player reads the merged result each frame.
 
-export type ActionButton = 'light' | 'heavy' | 'roll' | 'art' | 'weapon' | 'spell'
+export type ActionButton = 'light' | 'heavy' | 'roll' | 'art' | 'weapon' | 'spell' | 'lock'
 
 export class InputState {
   // Touch joystick vector, length 0..1.

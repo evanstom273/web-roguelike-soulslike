@@ -382,6 +382,8 @@ export interface MovementDef {
   invulnerabilityStart: number // fractions of the roll
   invulnerabilityEnd: number
   inputBuffer: number
+  /** How far away a target can be locked onto. Walking out of range doesn't break a lock. */
+  lockOnRadius: number
 }
 
 // Identity helpers: they only exist so content files get full type checking.

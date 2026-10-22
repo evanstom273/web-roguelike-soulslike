@@ -21,6 +21,7 @@ export interface PlayerIntent {
   rollHeld: boolean
   cycleWeapon: boolean
   cycleSpell: boolean
+  lock: boolean
 }
 
 type SwingKind = 'light' | 'heavy' | 'charged' | 'skill'
@@ -78,6 +79,10 @@ export class Player implements Caster {
   private dashInvulnerable = false
   private imbueState: { bonus: DamageMap; remaining: number; colour: string } | null = null
   private lightHeld = false
+  /** Locked-on target: you face it, and attacks and spells aim at it. */
+  lockedTarget: Target | null = null
+  /** Targets in the order they were in when lock-on started, for stepping through. */
+  private lockCycle: Target[] = []
 
   private root: Phaser.GameObjects.Container
   private body: Phaser.GameObjects.Image
@@ -174,7 +179,34 @@ export class Player implements Caster {
   // ---- Caster -------------------------------------------------------------
 
   aim() {
-    return this.facing
+    const t = this.lockedTarget
+    return t ? Math.atan2(t.y - this.y, t.x - this.x) : this.facing
+  }
+
+  /** Lock onto the nearest target (favouring what's in front), switch to the next, or release. */
+  private toggleLock() {
+    const range = MOVE.lockOnRadius
+    const candidates = this.world
+      .find('hostile', this.self, this, range)
+      .filter((t) => this.world.visible(this, t))
+      .map((t) => {
+        const d = Math.hypot(t.x - this.x, t.y - this.y)
+        const angle = Math.abs(Math.atan2(Math.sin(Math.atan2(t.y - this.y, t.x - this.x) - this.facing), Math.cos(Math.atan2(t.y - this.y, t.x - this.x) - this.facing)))
+        return { t, score: d * (1 + angle) } // nearer and more in front scores lower
+      })
+      .sort((a, b) => a.score - b.score)
+      .map((c) => c.t)
+    if (!this.lockedTarget) {
+      this.lockCycle = candidates
+      this.lockedTarget = candidates[0] ?? null
+      if (!this.lockedTarget) this.say('No target')
+      return
+    }
+    // Step through the order from when the lock started (it doesn't reshuffle as you turn);
+    // the tap after the last one lets go.
+    const i = this.lockCycle.indexOf(this.lockedTarget)
+    this.lockedTarget = this.lockCycle.slice(i + 1).find((t) => candidates.includes(t)) ?? null
+    if (!this.lockedTarget) this.lockCycle = []
   }
 
   channelHeld() {
@@ -215,10 +247,12 @@ export class Player implements Caster {
       if (intent.cycleWeapon) this.cycleWeapon()
       if (intent.cycleSpell) this.cycleSpell()
     }
+    if (intent.lock) this.toggleLock()
+    if (this.lockedTarget && (!this.lockedTarget.actor.alive || !this.world.targets.has(this.lockedTarget))) this.lockedTarget = null
 
     for (const button of intent.pressed) {
       if (button === 'roll') this.rollDownAt = this.time
-      else if (button !== 'weapon' && button !== 'spell') this.buffered = { button, at: this.time } // cycling isn't an action
+      else if (button !== 'weapon' && button !== 'spell' && button !== 'lock') this.buffered = { button, at: this.time } // these aren't actions
     }
     // Roll fires when a short press is released; a long hold sprints instead.
     const rollHeldFor = this.rollDownAt === null ? 0 : this.time - this.rollDownAt
@@ -329,6 +363,9 @@ export class Player implements Caster {
         this.vx = this.vy = 0
         break
     }
+
+    // Locked on: face the target whatever you're doing, except mid-roll or mid-dash.
+    if (this.lockedTarget && this.state.kind !== 'roll' && this.state.kind !== 'dash') this.facing = this.aim()
 
     this.regenStamina(dt)
     this.self.x = this.x
@@ -479,10 +516,12 @@ export class Player implements Caster {
     return this.world.wallEnd(this, want, 25)
   }
 
-  /** Without lock-on: the nearest visible enemy roughly in front, in range. */
+  /** The locked target if it's in range and visible; otherwise the nearest visible enemy roughly in front. */
   private spellTarget(spell: SpellDef): Target | null {
     const d = spell.delivery
     const range = d.delivery === 'tether' ? Math.min(d.castRange, d.breakRange) : d.castRange
+    const lock = this.lockedTarget
+    if (lock) return Math.hypot(lock.x - this.x, lock.y - this.y) <= range && this.world.visible(this, lock) ? lock : null
     let best: Target | null = null
     let bestD = range
     for (const t of this.world.find('hostile', this.self, this, range)) {

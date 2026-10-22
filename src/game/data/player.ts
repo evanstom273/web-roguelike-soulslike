@@ -36,4 +36,5 @@ export const PLAYER_MOVEMENT: MovementDef = {
   invulnerabilityStart: 0.133333,
   invulnerabilityEnd: 0.755556,
   inputBuffer: 0.12,
+  lockOnRadius: 698.18,
 }
