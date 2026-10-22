@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser'
-import playerUrl from './art/player.svg?no-inline'
+import dummyUrl from './art/props/training-dummy.svg?no-inline'
 import { CombatWorld, type LandedHit } from './combat/CombatWorld.ts'
 import { SpellSystem } from './combat/SpellSystem.ts'
 import { getStatus } from './data/registry.ts'
@@ -7,11 +7,15 @@ import { generateFloor } from './dungeon/generateFloor.ts'
 import type { HudStore } from './hudStore.ts'
 import type { ActionButton, InputState } from './input.ts'
 import type { Loadout } from './player/character.ts'
-import { Player, weaponTextureKey } from './player/Player.ts'
+import { Player, playerTextureKey, weaponTextureKey } from './player/Player.ts'
 import { biomeForFloor, type BiomeDef } from './world/biomes.ts'
 import { buildEnvironment, preloadEnvironment, type Environment } from './world/environment.ts'
 import { buildFloorGeometry, type Vec } from './world/floorGeometry.ts'
-import { TrainingDummy } from './world/TrainingDummy.ts'
+import { DRAWN, LAYER } from './world/projection.ts'
+import { DUMMY_TEXTURE, TrainingDummy } from './world/TrainingDummy.ts'
+
+// The warrior's art for each drawn direction (the westward ones are mirrored in game).
+const PLAYER_ART = import.meta.glob('./art/characters/warrior/*.svg', { eager: true, query: '?no-inline', import: 'default' }) as Record<string, string>
 
 export interface RunSceneData {
   seed: string
@@ -50,7 +54,8 @@ export class RunScene extends Phaser.Scene {
 
   preload() {
     // Rasterised at native size: 1 SVG unit = 1 world pixel.
-    this.load.svg('player', playerUrl, { width: 96, height: 96 })
+    for (const d of DRAWN) this.load.svg(playerTextureKey(d), PLAYER_ART[`./art/characters/warrior/${d}.svg`], { width: 96, height: 128 })
+    this.load.svg(DUMMY_TEXTURE, dummyUrl, { width: 96, height: 128 })
     preloadEnvironment(this, this.biome)
     for (const w of this.run.loadout.weapons) {
       this.load.svg(weaponTextureKey(w.id), w.art.url, { width: w.art.width, height: w.art.height })
@@ -67,7 +72,7 @@ export class RunScene extends Phaser.Scene {
     this.spells = new SpellSystem(this, this.world, getStatus)
     this.player = new Player(this, geometry.spawn, geometry.walls, this.run.loadout, this.world, this.spells, getStatus)
 
-    this.reticle = this.add.graphics().setDepth(13)
+    this.reticle = this.add.graphics().setDepth(LAYER.reticle)
 
     // Training dummies in the start room, for trying weapons, spells and lock-on.
     this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 220, y: geometry.spawn.y }, getStatus))
@@ -105,7 +110,7 @@ export class RunScene extends Phaser.Scene {
   private damageNumber(at: Vec, amount: number, periodic: boolean) {
     if (amount <= 0) return
     const text = this.add
-      .text(at.x + (Math.random() - 0.5) * 20, at.y - 40, String(amount), {
+      .text(at.x + (Math.random() - 0.5) * 20, at.y - 120, String(amount), {
         fontFamily: 'Cinzel, serif',
         fontSize: periodic ? '16px' : '22px',
         color: periodic ? '#d9c08a' : '#fff4d6',
@@ -113,7 +118,7 @@ export class RunScene extends Phaser.Scene {
         strokeThickness: 4,
       })
       .setOrigin(0.5)
-      .setDepth(20)
+      .setDepth(LAYER.text)
     this.tweens.add({ targets: text, y: text.y - 36, alpha: 0, duration: 800, ease: 'Cubic.Out', onComplete: () => text.destroy() })
   }
 
@@ -206,7 +211,7 @@ export class RunScene extends Phaser.Scene {
     })
   }
 
-  /** Lock-on marker: four brackets turning slowly around the target. */
+  /** Lock-on marker: brackets turning on the ground around the target, a gem above its head. */
   private drawReticle(time: number) {
     const g = this.reticle
     g.clear()
@@ -214,14 +219,23 @@ export class RunScene extends Phaser.Scene {
     if (!t) return
     const r = t.radius + 14
     const spin = time / 900
-    g.lineStyle(3, 0xffffff, 0.9)
+    g.lineStyle(3, 0xffffff, 0.8)
     for (let i = 0; i < 4; i++) {
+      // Points on a flattened ring so it reads as lying on the floor.
       const a = spin + (i * Math.PI) / 2
       g.beginPath()
-      g.arc(t.x, t.y, r, a - 0.35, a + 0.35)
+      for (let k = 0; k <= 6; k++) {
+        const b = a - 0.35 + (0.7 * k) / 6
+        const px = t.x + Math.cos(b) * r
+        const py = t.y + Math.sin(b) * r * 0.55
+        if (k === 0) g.moveTo(px, py)
+        else g.lineTo(px, py)
+      }
       g.strokePath()
     }
+    const bob = Math.sin(time / 250) * 3
+    const top = t.y - 128 - 14 + bob
     g.fillStyle(0xd9a35b, 0.95)
-    g.fillCircle(t.x, t.y - r - 8, 4)
+    g.fillTriangle(t.x, top + 10, t.x - 6, top, t.x + 6, top)
   }
 }

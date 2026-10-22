@@ -36,9 +36,14 @@ export interface BiomeDef {
   outside: string
   path: string
   wall: string
-  pillar: string
+  pillar: string // cap for low wall joints, seen from above
+  column: string // full-height column at tall wall joints, three-quarter view
   brazier: string
+  brazierStand: string // three-quarter view
+  torch: string // wall-mounted, three-quarter view
   threshold: string
+  /** Wall face masonry: stone, mortar, and moss at the foot (if any). */
+  wallFace: { stone: number; mortar: number; moss: number | null }
   decals: DecalDef[]
   decalsPerCell: [number, number]
 }
@@ -59,7 +64,10 @@ const parts = (id: string) => ({
   path: art(`${id}/path`),
   wall: art(`${id}/wall`),
   pillar: art(`${id}/pillar`),
+  column: art(`${id}/column`),
   brazier: art(`${id}/brazier`),
+  brazierStand: art(`${id}/brazier-stand`),
+  torch: art(`${id}/torch`),
   threshold: art(`${id}/threshold`),
 })
 
@@ -72,6 +80,7 @@ export const BIOMES: BiomeDef[] = [
     darkness: 0.3,
     lightColour: 0xffa04a,
     ...parts('surface'),
+    wallFace: { stone: 0x5d6052, mortar: 0x1e2019, moss: 0x3c5622 },
     decals: [
       decal('surface', 'rubble', 160, 160, 3, 'floor'),
       decal('surface', 'puddle', 220, 150, 1, 'floor', 0),
@@ -88,6 +97,7 @@ export const BIOMES: BiomeDef[] = [
     darkness: 0.45,
     lightColour: 0xff9440,
     ...parts('underground'),
+    wallFace: { stone: 0x5a4d3c, mortar: 0x18130d, moss: 0x334019 },
     decals: [
       decal('underground', 'rubble', 160, 160, 4, 'floor'),
       decal('underground', 'puddle', 220, 150, 2, 'floor', 0),
@@ -103,6 +113,7 @@ export const BIOMES: BiomeDef[] = [
     darkness: 0.58,
     lightColour: 0x6fd8ff,
     ...parts('depths'),
+    wallFace: { stone: 0x3b3f46, mortar: 0x0a0b0d, moss: null },
     decals: [
       decal('depths', 'rubble', 160, 160, 4, 'floor'),
       decal('depths', 'puddle', 220, 150, 2, 'floor', 0),

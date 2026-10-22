@@ -6,15 +6,15 @@
 ## 1. Project identity and platform
 
 - A distinct, fun, relatively simple web-game project: not a remake of Ashen Vow or a full copy of the game-jam game that inspired the discussion.
-- Genre: 2D top-down Soulslike roguelite with procedural environments and repeated runs.
+- Genre: 2D three-quarter-view Soulslike roguelite with procedural environments and repeated runs.
 - Some ideas may carry over from Ashen Vow, but this is intended to be a different game entirely.
 - Web stack: Phaser, React, Vite, TypeScript and Tailwind CSS, with IndexedDB (via Dexie) for save data, following the creator’s usual workflow.
-- Presentation: strictly 90° top-down (direct overhead), never three-quarter view.
+- Presentation: three-quarter view (oblique): the ground is drawn as seen from above, and characters, walls and props stand up from it. Characters are drawn in eight directions (five drawn, three mirrored). Changed from strict overhead after side-by-side mockups.
 - Detailed layered SVG art, following the complete adapted specification in Part II.
 
 ## 2. Combat direction
 
-- Combat should feel like Elden Ring / Souls games, translated to top-down 2D.
+- Combat should feel like Elden Ring / Souls games, translated to three-quarter-view 2D.
 - Melee combat, magic and dodge rolls are core elements the creator specifically named.
 - No exact weapon lists, spell systems, combat statistics or controls have been decided.
 
@@ -64,13 +64,13 @@
 
 # PART II — COMPLETE ART STYLE SPECIFICATION
 
-The following preserves the supplied art-style document, changing only the perspective-specific wording required to enforce a true 90° overhead view.
+The following preserves the supplied art-style document, changing only the perspective-specific wording to match the game's three-quarter view.
 
 ART STYLE — TOP-DOWN 2D SVG
 
 Core Visual Direction
 
-Maintain a consistent art style using detailed, realistic, cel-shaded SVG graphics presented from a strict 90-degree overhead, fully top-down perspective.
+Maintain a consistent art style using detailed, realistic, cel-shaded SVG graphics presented in a consistent three-quarter (oblique) view.
 
 The artwork must use carefully layered SVG geometry, controlled proportions, gradients, highlights, shadows and lighting to create convincing depth and volume within a 2D game environment.
 
@@ -78,16 +78,15 @@ The visual style should be richly detailed, dimensional and cohesive, rather tha
 
 Perspective and Composition
 
-Use a consistent strict 90-degree overhead perspective throughout the game. The camera looks straight down, not diagonally.
+Use a consistent three-quarter (oblique) view throughout the game. Ground surfaces (floors, paths, decals, anything lying flat) are drawn as seen from above, at native scale. Anything standing (characters, walls, columns, props) is drawn upright, its height rising straight up the screen, with its foot on the ground point it occupies.
 
-Depict objects, characters, structures and environmental features as viewed directly from above. Do not use three-quarter or angled views to reveal front-facing vertical surfaces.
+Characters and other things that turn are drawn facing south, south-east, east, north-east and north; the westward directions mirror their eastern counterparts. Things further down the screen are nearer the camera and draw on top.
 
 Maintain consistent viewing angles, proportions, depth and visual scale across all assets.
 
 Avoid:
 
-- Elevated three-quarter top-down views.
-- Angled views showing front-facing vertical surfaces.
+- Mixing overhead-only and three-quarter assets in the same scene.
 - Isometric diamond-grid projection.
 - Exaggerated perspective distortion.
 - Pixel art.
@@ -182,7 +181,7 @@ The finished game should resemble a richly illustrated, dimensional 2D world wit
 Prioritise:
 
 - Strong, readable silhouettes.
-- Realistic proportions within the strict overhead perspective.
+- Realistic proportions within the three-quarter view.
 - Detailed layered geometry.
 - Convincing material differentiation.
 - Carefully controlled highlights and shadows.

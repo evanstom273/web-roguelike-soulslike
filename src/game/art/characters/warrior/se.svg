@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 128" width="96" height="128">
+  <!-- Warrior, three-quarter, facing the camera and turned right (mirrored for left). Feet at (48, 118); hands (39.5, 92) and (68, 78). -->
+  <defs>
+    <radialGradient id="shadow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#000" stop-opacity="0.5"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c3c7cb"/><stop offset="0.45" stop-color="#7f8489"/><stop offset="1" stop-color="#3a3e42"/></linearGradient>
+    <linearGradient id="steelD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d9297"/><stop offset="1" stop-color="#2b2e32"/></linearGradient>
+    <linearGradient id="helmG" x1="0" y1="0" x2="1" y2="0.6"><stop offset="0" stop-color="#d2d6d9"/><stop offset="0.5" stop-color="#868b90"/><stop offset="1" stop-color="#34373b"/></linearGradient>
+    <linearGradient id="capeG" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0" stop-color="#8e1f1c"/><stop offset="0.6" stop-color="#651414"/><stop offset="1" stop-color="#3a0b0c"/></linearGradient>
+    <linearGradient id="furG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#806b53"/><stop offset="1" stop-color="#3b2f24"/></linearGradient>
+    <linearGradient id="leatherG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b4a2e"/><stop offset="1" stop-color="#33220f"/></linearGradient>
+    <pattern id="mail" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#3d4145"/><circle cx="1.5" cy="1.5" r="0.9" fill="#80858a"/></pattern>
+  </defs>
+  <ellipse cx="48" cy="118" rx="28" ry="7" fill="url(#shadow)"/>
+  <g stroke="#16181a" stroke-width="1.2" stroke-linejoin="round">
+    <path d="M62 52 L70 52 L70 70 L63 72 Z" fill="#3a3e42"/>
+    <path d="M63 71 L73 71 L73 79 C70 81.5 66 81.5 63 79 Z" fill="#3a3e42"/>
+    <path d="M64.5 75 L71.5 75" stroke="#16181a" stroke-width="0.7"/>
+    <path d="M36 44 C27 58 21 86 18 115 L25 112 L30 116 L36 112 L44 112 L46 60 Z" fill="url(#capeG)"/>
+    <path d="M33 52 C27 70 24 92 23 110" stroke="#3a0b0c" stroke-width="1.2" fill="none"/>
+    <path d="M36 86 L46 86 L45 111 L36 111 Z" fill="url(#steelD)"/>
+    <path d="M48 86 L58 86 L58 111 L49 111 Z" fill="url(#steelD)"/>
+    <circle cx="41" cy="98" r="4" fill="url(#steel)"/>
+    <circle cx="53" cy="98" r="4" fill="url(#steelD)"/>
+    <path d="M34 109 L46 109 L47 118 C43 119.5 37 119.5 33 118 Z" fill="#2a2d30"/>
+    <path d="M48 109 L60 109 L61 118 C57 119.5 51 119.5 47 118 Z" fill="#232629"/>
+    <path d="M33 73 L63 73 L64 89 C54 91 42 91 32 89 Z" fill="url(#mail)"/>
+    <path d="M35 73 L48 73 L47.5 85 L34.5 84 Z" fill="url(#steel)"/>
+    <path d="M50 73 L61.5 73 L62 84 L50.5 85 Z" fill="url(#steelD)"/>
+    <path d="M34 44 C41 40.5 55 40.5 62 44.5 C64.5 52 64.5 60 63 67 C57.5 73 39 73 33 67 Z" fill="url(#steel)"/>
+    <path d="M52 44 L53.5 70" stroke="#2a2d30" stroke-width="1" fill="none"/>
+    <path d="M38 47 C42 45 46 44.5 49 44.5" stroke="#eef0f2" stroke-opacity="0.8" stroke-width="1" fill="none"/>
+    <path d="M33 70 L63.5 70 L63.5 75 L33 75 Z" fill="url(#leatherG)"/>
+    <rect x="50" y="70.5" width="5" height="4" fill="#b08a3e" stroke-width="0.7"/>
+    <path d="M30 51 L39 51 L41 73 L33 74 Z" fill="url(#steel)"/>
+    <circle cx="36.5" cy="70" r="3.4" fill="url(#steel)"/>
+    <path d="M33 73 L41 72 L42 87 L35 88 Z" fill="url(#steelD)"/>
+    <path d="M34.5 85 L44.5 85 L44.5 93 C41.5 95.5 37.5 95.5 34.5 93 Z" fill="url(#steel)"/>
+    <path d="M36.0 89 L43.0 89" stroke="#16181a" stroke-width="0.7"/>
+    <path d="M22 53 C20 43 28 36.5 41 38 C45.5 40 45.5 46 42.5 50 C35 53 28 54 22 53 Z" fill="url(#steel)"/>
+    <path d="M23 53 C29 55.5 37 55.5 42.5 51.5 L42 56 C36 58.5 28.5 58.5 23.5 56.5 Z" fill="url(#steelD)"/>
+    <path d="M24 56.5 C29 59 36 59 41.5 56 L41 60 C35.5 62 29 62 24.5 60 Z" fill="url(#steelD)"/>
+    <path d="M25 46 C28 41 34 39 39 39.5" stroke="#f4f6f7" stroke-opacity="0.8" stroke-width="1" fill="none"/>
+    <path d="M77 53 C79 43 71 36.5 58 38 C53.5 40 53.5 46 56.5 50 C64 53 71 54 77 53 Z" fill="url(#steelD)"/>
+    <path d="M76 53 C70 55.5 62 55.5 56.5 51.5 L57 56 C63 58.5 70.5 58.5 75.5 56.5 Z" fill="#33373b"/>
+    <path d="M75 56.5 C70 59 63 59 57.5 56 L58 60 C63.5 62 70 62 74.5 60 Z" fill="#33373b"/>
+    <path d="M33 43 C36.4 36 60.6 36 64 43 L62.1 47.5 L58.7 45 L55.3 48.5 L51.9 45.5 L48.5 49 L45.1 45.5 L41.7 48.5 L38.3 45 L34.9 47.5 Z" fill="url(#furG)"/>
+    <path d="M39 17 C39 12.5 44 10 51 10 C58 10 63 12.5 63 17 L63.5 37 C59 40.5 43 40.5 38.5 37 Z" fill="url(#helmG)"/>
+    <ellipse cx="51" cy="12.5" rx="11.5" ry="3" fill="#dfe2e5" stroke-width="0.9"/>
+    <path d="M41 15.5 C41.5 26 41.5 32 41.5 35" stroke="#ffffff" stroke-opacity="0.45" stroke-width="1.2" fill="none"/>
+    <path d="M54 13 L56 13 L56.3 38.5 L54.3 38.5 Z" fill="#5d6267" stroke-width="0.6"/>
+    <rect x="42" y="22" width="20" height="3" fill="#0b0c0d" stroke="none"/>
+    <circle cx="58" cy="31" r="0.8" fill="#0b0c0d" stroke="none"/><circle cx="60.5" cy="31" r="0.8" fill="#0b0c0d" stroke="none"/>
+    <circle cx="58" cy="33.5" r="0.8" fill="#0b0c0d" stroke="none"/><circle cx="60.5" cy="33.5" r="0.8" fill="#0b0c0d" stroke="none"/>
+  </g>
+</svg>

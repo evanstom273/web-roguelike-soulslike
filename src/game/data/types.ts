@@ -150,8 +150,9 @@ export interface WeaponDef {
   /**
    * grip = the point held in the hand. rest = idle angle from facing in degrees, positive
    * outward (mirrored in the left hand); defaults to the hand's own resting angle.
+   * upright = shown face-on and kept upright (shields), instead of pointing along its angle.
    */
-  art: SvgArt & { grip: { x: number; y: number }; rest?: number }
+  art: SvgArt & { grip: { x: number; y: number }; rest?: number; upright?: boolean }
   light: AttackDef
   heavy: AttackDef
   /** Hold heavy past `heavy.chargeThreshold` to charge this. */
