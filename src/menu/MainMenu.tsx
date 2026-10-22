@@ -8,16 +8,35 @@ interface MenuItem {
   tag?: string
 }
 
-// Settings is a placeholder for now.
-const ITEMS: MenuItem[] = [
-  { id: 'start', label: 'Start Run', enabled: true },
+export interface MainMenuActions {
+  onContinue: () => void
+  onLoad: () => void
+  onNewGame: () => void
+  onSandbox: () => void
+  onOpenFloorDebug: () => void
+}
+
+// Continue and Load need a save to exist. Settings is a placeholder for now.
+const menuItems = (hasSaves: boolean): MenuItem[] => [
+  { id: 'continue', label: 'Continue', enabled: hasSaves },
+  { id: 'load', label: 'Load', enabled: hasSaves },
+  { id: 'new', label: 'New Game', enabled: true },
   { id: 'settings', label: 'Settings', enabled: false },
+  { id: 'sandbox', label: 'Sandbox', enabled: true, tag: 'Debug' },
   { id: 'floor-debug', label: 'Floor Gen', enabled: true, tag: 'Debug' },
 ]
 
-export function MainMenu({ onStartRun, onOpenFloorDebug }: { onStartRun: () => void; onOpenFloorDebug: () => void }) {
-  const actions: Record<string, (() => void) | undefined> = { start: onStartRun, 'floor-debug': onOpenFloorDebug }
-  const [selected, setSelected] = useState(0)
+export function MainMenu({ hasSaves, ...a }: MainMenuActions & { hasSaves: boolean }) {
+  const actions: Record<string, (() => void) | undefined> = {
+    continue: a.onContinue,
+    load: a.onLoad,
+    new: a.onNewGame,
+    sandbox: a.onSandbox,
+    'floor-debug': a.onOpenFloorDebug,
+  }
+  const ITEMS = menuItems(hasSaves)
+  // Start on Continue when there's something to continue, otherwise New Game.
+  const [selected, setSelected] = useState(hasSaves ? 0 : 2)
   const buttons = useRef<(HTMLButtonElement | null)[]>([])
 
   useEffect(() => {
@@ -32,7 +51,7 @@ export function MainMenu({ onStartRun, onOpenFloorDebug }: { onStartRun: () => v
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [ITEMS.length])
 
   useEffect(() => {
     buttons.current[selected]?.focus()

@@ -25,6 +25,13 @@ export const BASE_LEVEL = 10
 export const baseLevels = (): AttributeLevels =>
   Object.fromEntries(ATTRIBUTE_IDS.map((id) => [id, BASE_LEVEL])) as AttributeLevels
 
+/** Attribute points every starting class spends; a fresh character is level 1. */
+export const CLASS_POINTS = 65
+
+/** Character level: 1 plus every attribute level bought since character creation. */
+export const characterLevel = (levels: AttributeLevels) =>
+  Math.max(1, 1 + ATTRIBUTE_IDS.reduce((sum, id) => sum + levels[id], 0) - CLASS_POINTS)
+
 export interface DerivedStats {
   maxHp: number
   maxStamina: number

@@ -23,11 +23,10 @@ export interface Loadout {
 }
 
 /**
- * Starting equipment isn't decided yet (GDD §7). Until there's an equipment screen,
- * the player owns every weapon and spell so all of them can be tried out, starting
- * with a sword in the right hand and a shield in the left.
+ * The debug sandbox character: owns every weapon and spell so all of them can be tried
+ * out, starting with a sword in the right hand and a shield in the left.
  */
-export const startingCharacter = (): Character => ({
+export const sandboxCharacter = (): Character => ({
   levels: baseLevels(),
   weaponIds: ['straight-sword', 'wand', 'shield', ...[...WEAPONS.keys()].filter((id) => !['straight-sword', 'wand', 'shield'].includes(id)).sort()],
   right: 'straight-sword',
