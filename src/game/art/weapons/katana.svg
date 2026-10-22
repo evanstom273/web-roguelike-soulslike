@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="22" viewBox="0 0 132 22">
+  <!-- Katana, overhead, pointing +x. Single-edged, gently curved; grip pivot at (12, 11). -->
+  <defs>
+    <linearGradient id="kt-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef1f3"/><stop offset="1" stop-color="#b3b9be"/></linearGradient>
+    <linearGradient id="kt-bot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#868c92"/><stop offset="1" stop-color="#4c5156"/></linearGradient>
+    <radialGradient id="kt-tsuba" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#8a7a5a"/><stop offset="1" stop-color="#2a2318"/></radialGradient>
+  </defs>
+  <g stroke="#141618" stroke-width="1.1" stroke-linejoin="round">
+    <!-- Blade: spine along the top, edge below, curving down towards the tip. -->
+    <path d="M33 8.2 C60 8 90 8.4 112 10 C120 10.6 126 11.8 130 13.6 C124 14.6 117 14.8 110 14.5 C88 13.8 60 13.4 33 13.6 Z" fill="url(#kt-bot)"/>
+    <path d="M33 8.2 C60 8 90 8.4 112 10 C120 10.6 126 11.8 130 13.6 C120 12.8 100 11.3 80 10.9 C60 10.6 45 10.8 33 10.9 Z" fill="url(#kt-top)" stroke="none"/>
+    <path d="M33 8.2 C60 8 90 8.4 112 10 C120 10.6 126 11.8 130 13.6 C124 14.6 117 14.8 110 14.5 C88 13.8 60 13.4 33 13.6 Z" fill="none"/>
+    <!-- Hamon: the wavy temper line along the edge. -->
+    <path d="M36 12.3 C40 11.6 43 12.6 47 12 C51 11.4 54 12.5 58 11.9 C62 11.3 65 12.4 69 11.8 C73 11.3 76 12.4 80 11.9 C84 11.5 87 12.6 91 12.1 C95 11.7 98 12.8 102 12.4 C106 12.1 109 13 113 12.8" stroke="#f4f6f7" stroke-opacity="0.7" stroke-width="0.7" fill="none"/>
+    <path d="M34 9.3 L104 9.8" stroke="#ffffff" stroke-opacity="0.6" stroke-width="0.5" fill="none"/>
+    <!-- Habaki collar, round tsuba, wrapped tsuka. -->
+    <rect x="29" y="7.6" width="5" height="6.6" rx="1" fill="#c9a24a"/>
+    <ellipse cx="27" cy="11" rx="2.6" ry="8.5" fill="url(#kt-tsuba)"/>
+    <rect x="3" y="7.8" width="22" height="6.4" rx="2.2" fill="#e6e0d0"/>
+    <path d="M5 7.8 L8 14.2 M8 7.8 L5 14.2 M10 7.8 L13 14.2 M13 7.8 L10 14.2 M15 7.8 L18 14.2 M18 7.8 L15 14.2 M20 7.8 L23 14.2 M23 7.8 L20 14.2" stroke="#1b1b22" stroke-width="1.2" fill="none"/>
+    <rect x="1" y="8.2" width="3" height="5.6" rx="1" fill="#c9a24a"/>
+  </g>
+</svg>
