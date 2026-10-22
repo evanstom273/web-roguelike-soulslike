@@ -22,8 +22,8 @@ export default defineConfig({
         // which was needed once to get past a stuck Android install.
         id: '/web-roguelike-soulslike/?app=v2',
         start_url: '/web-roguelike-soulslike/?source=pwa',
-        theme_color: '#05070d',
-        background_color: '#05070d',
+        theme_color: '#0a0907',
+        background_color: '#0a0907',
         display: 'fullscreen',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

@@ -48,7 +48,7 @@ export function TouchControls({ input }: { input: InputState }) {
             style={{ left: stick.ox - STICK_RADIUS, top: stick.oy - STICK_RADIUS, width: STICK_RADIUS * 2, height: STICK_RADIUS * 2 }}
           >
             <div
-              className="absolute size-12 rounded-full border border-neon/60 bg-neon/20"
+              className="absolute size-12 rounded-full border border-ember/60 bg-ember/20"
               style={{ left: STICK_RADIUS - 24 + stick.kx, top: STICK_RADIUS - 24 + stick.ky }}
             />
           </div>
@@ -96,7 +96,7 @@ function ActionPad({
       onPointerCancel={release}
       onContextMenu={(e) => e.preventDefault()}
       className={`absolute flex flex-col items-center justify-center rounded-full border text-[0.65rem] font-semibold tracking-[0.15em] uppercase transition-colors ${
-        down ? 'border-neon bg-neon/25 text-neon' : 'border-white/25 bg-black/35 text-text/80'
+        down ? 'border-ember bg-ember/25 text-ember' : 'border-white/25 bg-black/35 text-text/80'
       } ${className}`}
     >
       {label}

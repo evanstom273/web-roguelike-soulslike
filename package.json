@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "art:env": "node tools/environment-art.mjs"
   },
   "dependencies": {
     "dexie": "^4.4.6",

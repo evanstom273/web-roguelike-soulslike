@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Starfield } from './Starfield.tsx'
+import { Backdrop } from './Backdrop.tsx'
 
 interface MenuItem {
   id: string
@@ -59,15 +59,19 @@ export function MainMenu({ hasSaves, ...a }: MainMenuActions & { hasSaves: boole
 
   return (
     <main className="relative flex h-full flex-col items-center justify-center px-4">
-      <Starfield />
+      <Backdrop />
 
       <div className="relative flex w-full max-w-md flex-col items-center">
         <p className="mb-3 text-xs tracking-[0.5em] text-dim uppercase">Working title</p>
-        <h1 className="text-center font-display text-3xl font-extrabold tracking-[0.12em] text-text uppercase drop-shadow-[0_0_14px_rgba(56,232,255,0.35)] sm:text-5xl animate-[flicker_7s_linear_infinite]">
+        <h1 className="text-center font-display text-4xl font-black tracking-[0.1em] text-text uppercase drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] sm:text-6xl">
           Roguelike
-          <span className="block text-neon">Soulslike</span>
+          <span className="block text-ember drop-shadow-[0_0_22px_rgba(217,163,91,0.35)]">Soulslike</span>
         </h1>
-        <div className="mt-6 h-px w-48 bg-gradient-to-r from-transparent via-hazard to-transparent" />
+        <div className="mt-6 flex items-center gap-3 text-ember/80" aria-hidden>
+          <span className="h-px w-20 bg-gradient-to-r from-transparent to-ember/70" />
+          <span className="text-[0.6rem]">◆</span>
+          <span className="h-px w-20 bg-gradient-to-l from-transparent to-ember/70" />
+        </div>
 
         <nav className="mt-12 flex w-full max-w-xs flex-col gap-3" aria-label="Main menu">
           {ITEMS.map((item, i) => {
@@ -84,20 +88,22 @@ export function MainMenu({ hasSaves, ...a }: MainMenuActions & { hasSaves: boole
                 onMouseEnter={() => setSelected(i)}
                 onFocus={() => setSelected(i)}
                 className={[
-                  'group relative flex items-center justify-between border px-5 py-3 text-left text-lg font-semibold tracking-[0.2em] uppercase transition-colors outline-none',
-                  '[clip-path:polygon(0_0,calc(100%-14px)_0,100%_14px,100%_100%,14px_100%,0_calc(100%-14px))]',
-                  active
-                    ? 'border-neon bg-panel text-neon'
-                    : 'border-line bg-hull/80 text-text/80',
+                  'group relative flex items-center justify-between border px-5 py-3 text-left font-display text-base font-bold tracking-[0.22em] uppercase transition-colors outline-none',
+                  'shadow-[inset_0_0_0_3px_var(--color-void),inset_0_0_0_4px_rgba(217,163,91,0.14)]',
+                  !item.enabled
+                    ? 'border-line/60 bg-hull/70 text-text/35'
+                    : active
+                      ? 'border-ember bg-panel/95 text-ember'
+                      : 'border-line bg-hull/85 text-text/85',
                 ].join(' ')}
               >
                 <span className="flex items-center gap-3">
-                  <span className={active ? 'text-hazard' : 'text-transparent'}>▸</span>
+                  <span className={`text-[0.6rem] ${active && item.enabled ? 'text-ember' : 'text-transparent'}`}>◆</span>
                   {item.label}
                 </span>
                 {(item.tag || !item.enabled) && (
-                  <span className={`text-[0.6rem] tracking-[0.25em] ${item.tag ? 'text-hazard/80' : 'text-dim'}`}>
-                    {item.tag ?? 'Offline'}
+                  <span className={`text-[0.6rem] tracking-[0.25em] ${item.tag ? 'text-blood/80' : 'text-dim'}`}>
+                    {item.tag ?? 'Sealed'}
                   </span>
                 )}
               </button>

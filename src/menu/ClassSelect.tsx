@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ATTRIBUTE_IDS, ATTRIBUTES, deriveStats } from '../game/data/attributes.ts'
 import { CLASSES, type ClassDef } from '../game/data/classes.ts'
 import { getWeapon } from '../game/data/registry.ts'
-import { MenuFrame, panelClip } from './MenuFrame.tsx'
+import { MenuFrame, panel } from './MenuFrame.tsx'
 
 // New game: pick a starting class. Its attributes and kit are shown in full.
 
@@ -51,9 +51,9 @@ export function ClassSelect({ onPick, onBack }: { onPick: (cls: ClassDef) => voi
               onClick={() => pick(cls)}
               onMouseEnter={() => setSelected(i)}
               onFocus={() => setSelected(i)}
-              className={`${panelClip} flex flex-col border p-5 text-left transition-colors outline-none ${active ? 'border-neon bg-panel' : 'border-line bg-hull/80'}`}
+              className={`${panel} flex flex-col border p-5 text-left transition-colors outline-none ${active ? 'border-ember bg-panel' : 'border-line bg-hull/90'}`}
             >
-              <span className={`font-display text-xl font-bold tracking-[0.2em] uppercase ${active ? 'text-neon' : 'text-text'}`}>{cls.name}</span>
+              <span className={`font-display text-xl font-bold tracking-[0.2em] uppercase ${active ? 'text-ember' : 'text-text'}`}>{cls.name}</span>
               <span className="mt-1 text-[0.6rem] tracking-[0.25em] text-dim uppercase">Level 1</span>
 
               <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
