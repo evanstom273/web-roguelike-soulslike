@@ -4,7 +4,7 @@ import { hexCorners, hexKey, hexToPixel, type Hex } from '../dungeon/hex.ts'
 // Turns a generated floor into world-space shapes: floor polygons to draw and wall
 // segments to collide with. 1 unit = 1 world pixel.
 
-export const CELL_SIZE = 480 // hex circumradius; each hex side is this long too
+export const CELL_SIZE = 720 // hex circumradius; each hex side is this long too
 export const HALLWAY_WIDTH = 120
 
 export interface Vec {
