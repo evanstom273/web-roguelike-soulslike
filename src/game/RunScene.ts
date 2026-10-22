@@ -25,6 +25,9 @@ export interface RunSceneData {
   hud: HudStore
 }
 
+// Slow motion for looking at animation closely: add ?timescale=0.2 to the URL.
+const TIME_SCALE = Math.max(0.05, Math.min(1, Number(new URLSearchParams(location.search).get('timescale')) || 1))
+
 // How much of the world fits on the shorter screen side, in world px.
 const VIEW_SHORT_SIDE = 750
 
@@ -128,7 +131,7 @@ export class RunScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number) {
-    let dt = Math.min(deltaMs / 1000, 1 / 20) // don't teleport through walls after a hitch
+    let dt = Math.min(deltaMs / 1000, 1 / 20) * TIME_SCALE // don't teleport through walls after a hitch
     if (this.hitStop > 0) {
       // Hit-stop: freeze the action for a few frames when a blow lands.
       this.hitStop -= dt
