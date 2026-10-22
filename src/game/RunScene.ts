@@ -30,6 +30,7 @@ export class RunScene extends Phaser.Scene {
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private mousePressed = new Set<ActionButton>()
   private hitStop = 0
+  private reticle!: Phaser.GameObjects.Graphics
   // Camera target that tracks the player without the camera owning the player object.
   private playerAnchor = { x: 0, y: 0 }
 
@@ -59,8 +60,11 @@ export class RunScene extends Phaser.Scene {
     this.spells = new SpellSystem(this, this.world, getStatus)
     this.player = new Player(this, geometry.spawn, geometry.walls, this.run.loadout, this.world, this.spells, getStatus)
 
-    // A training dummy in the start room, for trying weapons and spells on.
+    this.reticle = this.add.graphics().setDepth(13)
+
+    // Training dummies in the start room, for trying weapons, spells and lock-on.
     this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 220, y: geometry.spawn.y }, getStatus))
+    this.dummies.push(new TrainingDummy(this, this.world, { x: geometry.spawn.x + 120, y: geometry.spawn.y + 230 }, getStatus))
 
     const cam = this.cameras.main
     cam.setBackgroundColor('#05070d')
@@ -71,11 +75,11 @@ export class RunScene extends Phaser.Scene {
     this.scale.on('resize', this.fitCamera, this)
 
     const kb = this.input.keyboard!
-    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,F,Q,E') as Record<string, Phaser.Input.Keyboard.Key>
+    this.keys = kb.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE,J,K,L,F,Q,E,TAB') as Record<string, Phaser.Input.Keyboard.Key>
     this.input.mouse?.disableContextMenu()
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.wasTouch) return // touch has its own on-screen buttons
-      this.mousePressed.add(p.rightButtonDown() ? 'heavy' : 'light')
+      this.mousePressed.add(p.middleButtonDown() ? 'lock' : p.rightButtonDown() ? 'heavy' : 'light')
     })
   }
 
@@ -127,6 +131,7 @@ export class RunScene extends Phaser.Scene {
     if (JustDown(k.L) || JustDown(k.F)) pressed.add('art')
     if (JustDown(k.E)) pressed.add('weapon')
     if (JustDown(k.Q)) pressed.add('spell')
+    if (JustDown(k.TAB)) pressed.add('lock')
 
     let mx = (k.D.isDown || k.RIGHT.isDown ? 1 : 0) - (k.A.isDown || k.LEFT.isDown ? 1 : 0)
     let my = (k.S.isDown || k.DOWN.isDown ? 1 : 0) - (k.W.isDown || k.UP.isDown ? 1 : 0)
@@ -149,6 +154,7 @@ export class RunScene extends Phaser.Scene {
       rollHeld: k.SPACE.isDown || input.isTouchHeld('roll'),
       cycleWeapon: pressed.has('weapon'),
       cycleSpell: pressed.has('spell'),
+      lock: pressed.has('lock'),
     }
 
     if (dt > 0) {
@@ -158,6 +164,7 @@ export class RunScene extends Phaser.Scene {
     }
     this.playerAnchor.x = this.player.x
     this.playerAnchor.y = this.player.y
+    this.drawReticle(_time)
 
     const p = this.player
     const spell = p.selectedSpell
@@ -183,6 +190,25 @@ export class RunScene extends Phaser.Scene {
       effects: [...p.actor.effects.values()].map((e) => e.def.name),
       notice: p.notice?.text ?? null,
     })
+  }
+
+  /** Lock-on marker: four brackets turning slowly around the target. */
+  private drawReticle(time: number) {
+    const g = this.reticle
+    g.clear()
+    const t = this.player.lockedTarget
+    if (!t) return
+    const r = t.radius + 14
+    const spin = time / 900
+    g.lineStyle(3, 0xffffff, 0.9)
+    for (let i = 0; i < 4; i++) {
+      const a = spin + (i * Math.PI) / 2
+      g.beginPath()
+      g.arc(t.x, t.y, r, a - 0.35, a + 0.35)
+      g.strokePath()
+    }
+    g.fillStyle(0xff3d8b, 0.9)
+    g.fillCircle(t.x, t.y - r - 8, 4)
   }
 
   // Placeholder floor rendering so there's somewhere to move. Not final environment art.

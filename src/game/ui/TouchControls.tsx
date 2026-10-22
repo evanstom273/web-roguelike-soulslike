@@ -59,6 +59,7 @@ export function TouchControls({ input }: { input: InputState }) {
       <ActionPad input={input} button="light" label="Light" className="right-28 bottom-8 size-16" />
       <ActionPad input={input} button="heavy" label="Heavy" sub="hold" className="right-8 bottom-30 size-16" />
       <ActionPad input={input} button="art" label="Skill" className="right-28 bottom-28 size-12 text-[0.55rem]" />
+      <ActionPad input={input} button="lock" label="Lock" className="right-10 bottom-[12.5rem] size-12 text-[0.55rem]" />
     </div>
   )
 }
