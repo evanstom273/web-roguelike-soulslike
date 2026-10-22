@@ -1,7 +1,7 @@
-import * as Phaser from 'phaser'
+import type * as Phaser from 'phaser'
 import type { ActionButton } from '../input.ts'
 import { resolveWalls, type Segment, type Vec } from '../world/floorGeometry.ts'
-import { CHARGE, CHARGED, HEAVY, LIGHT, PLAYER, ROLL, SPRINT, type SwingTuning } from './tuning.ts'
+import { CHARGE, CHARGED, COOLDOWN, HEAVY, LIGHT, PLAYER, ROLL, SPRINT, type SwingTuning } from './tuning.ts'
 
 export interface PlayerIntent {
   move: Vec // length 0..1
@@ -23,6 +23,8 @@ const SWINGS: Record<SwingKind, SwingTuning> = { light: LIGHT, heavy: HEAVY, cha
 const HAND = { x: 14.5, y: 11.5 } // weapon hand relative to body centre, facing +x
 const REST_ANGLE = 0.5 // weapon angle when idle, radians from facing
 const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+const degToRad = (d: number) => (d * Math.PI) / 180
 
 export class Player {
   x: number
@@ -40,6 +42,7 @@ export class Player {
   private nextSide: 1 | -1 = 1
   private rollDownAt: number | null = null // when the roll button went down, until it's released
   private sprinting = false
+  private lastAttackAt = { light: -Infinity, heavy: -Infinity }
 
   private root: Phaser.GameObjects.Container
   private body: Phaser.GameObjects.Image
@@ -165,6 +168,9 @@ export class Player {
       return false
     }
     if (this.stamina <= 0) return false // keep it buffered in case stamina comes back in time
+    // Still cooling down: keep it buffered, so a press just before the cooldown ends still counts.
+    if (b.button === 'light' && this.time - this.lastAttackAt.light < COOLDOWN.light) return false
+    if (b.button === 'heavy' && this.time - this.lastAttackAt.heavy < COOLDOWN.heavy) return false
     this.buffered = null
     if (b.button === 'roll') {
       this.spendStamina(ROLL.stamina)
@@ -181,6 +187,7 @@ export class Player {
   private startSwing(swing: SwingKind, charge: number) {
     const tuning = SWINGS[swing]
     this.spendStamina(tuning.stamina)
+    this.lastAttackAt[swing === 'light' ? 'light' : 'heavy'] = this.time
     this.state = { kind: 'swing', t: 0, swing, tuning, side: this.nextSide, charge }
     this.nextSide = this.nextSide === 1 ? -1 : 1
   }
@@ -233,19 +240,19 @@ export class Player {
   }
 
   private swingAngle(s: Extract<State, { kind: 'swing' }>) {
-    const half = Phaser.Math.DegToRad(s.tuning.arc) / 2
+    const half = degToRad(s.tuning.arc) / 2
     const start = s.side * half
     const end = -s.side * half
     const { windup, active } = s.tuning
-    if (s.t < windup) return Phaser.Math.Linear(REST_ANGLE, start, easeOut(s.t / windup))
-    if (s.t < windup + active) return Phaser.Math.Linear(start, end, easeOut((s.t - windup) / active))
+    if (s.t < windup) return lerp(REST_ANGLE, start, easeOut(s.t / windup))
+    if (s.t < windup + active) return lerp(start, end, easeOut((s.t - windup) / active))
     return end
   }
 
   private drawSwingArc(s: Extract<State, { kind: 'swing' }>) {
     const { windup, active, recovery, reach } = s.tuning
     if (s.t < windup) return
-    const half = Phaser.Math.DegToRad(s.tuning.arc) / 2
+    const half = degToRad(s.tuning.arc) / 2
     const progress = Math.min(1, (s.t - windup) / active)
     const fade = s.t < windup + active ? 1 : Math.max(0, 1 - (s.t - windup - active) / (recovery * 0.6))
     if (fade <= 0) return

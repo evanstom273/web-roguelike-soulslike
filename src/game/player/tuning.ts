@@ -41,6 +41,13 @@ export const LIGHT: SwingTuning = { stamina: 12, windup: 0.1, active: 0.12, reco
 export const HEAVY: SwingTuning = { stamina: 24, windup: 0.34, active: 0.16, recovery: 0.42, lunge: 34, arc: 160, reach: 108 }
 export const CHARGED: SwingTuning = { stamina: 32, windup: 0.06, active: 0.2, recovery: 0.5, lunge: 50, arc: 200, reach: 128 }
 
+// Minimum time between the starts of two attacks of the same kind, so they can't be spammed.
+// Charged attacks share the heavy cooldown.
+export const COOLDOWN = {
+  light: 0.6,
+  heavy: 1.2,
+}
+
 export const CHARGE = {
   holdToCharge: 0.22, // holding heavy longer than this starts a charged attack
   maxCharge: 0.9, // releases automatically at full charge
